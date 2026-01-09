@@ -1,0 +1,37 @@
+name: scanner_app
+description: "Demo QR Scanner App - Mobile scanner for QR scanning and tracking system"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # QR Code Scanning - Modern alternative to qr_code_scanner
+  mobile_scanner: ^5.1.1
+  
+  # HTTP Client for API communication
+  http: ^1.2.0
+  
+  # GPS Location
+  geolocator: ^11.0.0
+  
+  # Permission handling
+  permission_handler: ^11.3.0
+  
+  # Material Design icons
+  cupertino_icons: ^1.0.6
+  
+  # Image picker for photo attachment
+  image_picker: ^1.0.7
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+
+flutter:
+  uses-material-design: true

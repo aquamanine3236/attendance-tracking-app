@@ -1,0 +1,92 @@
+/**
+ * Data model for scan submission
+ */
+class ScanData {
+  final String token;
+  final String fullName;
+  final String jobTitle;
+  final String employeeId;
+  final double? lat;
+  final double? lng;
+  final double? accuracy;
+  final String? imageData;
+
+  ScanData({
+    required this.token,
+    required this.fullName,
+    required this.jobTitle,
+    required this.employeeId,
+    this.lat,
+    this.lng,
+    this.accuracy,
+    this.imageData,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'token': token,
+      'fullName': fullName,
+      'jobTitle': jobTitle,
+      'employeeId': employeeId,
+      if (lat != null) 'lat': lat,
+      if (lng != null) 'lng': lng,
+      if (accuracy != null) 'accuracy': accuracy,
+      if (imageData != null) 'imageData': imageData,
+    };
+  }
+}
+
+/**
+ * Data model for scan result from server
+ */
+class ScanResult {
+  final String id;
+  final String displayId;
+  final String fullName;
+  final String jobTitle;
+  final String employeeId;
+  final double? lat;
+  final double? lng;
+  final String createdAt;
+  final bool success;
+  final String? errorMessage;
+
+  ScanResult({
+    required this.id,
+    required this.displayId,
+    required this.fullName,
+    required this.jobTitle,
+    required this.employeeId,
+    this.lat,
+    this.lng,
+    required this.createdAt,
+    this.success = true,
+    this.errorMessage,
+  });
+
+  factory ScanResult.fromJson(Map<String, dynamic> json) {
+    return ScanResult(
+      id: json['id'] ?? '',
+      displayId: json['displayId'] ?? '',
+      fullName: json['fullName'] ?? '',
+      jobTitle: json['jobTitle'] ?? '',
+      employeeId: json['employeeId'] ?? '',
+      lat: json['lat']?.toDouble(),
+      lng: json['lng']?.toDouble(),
+      createdAt: json['createdAt'] ?? DateTime.now().toIso8601String(),
+    );
+  }
+
+  factory ScanResult.error(String message) {
+    return ScanResult(
+      id: '',
+      displayId: '',
+      fullName: '',
+      jobTitle: '',
+      employeeId: '',
+      createdAt: DateTime.now().toIso8601String(),
+      success: false,
+      errorMessage: message,
+    );
+  }
+}

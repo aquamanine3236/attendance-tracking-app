@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QR Display | Demo QR System</title>
+    <meta name="description" content="Display screen for QR code scanning">
+    <style>
+        /* =========================================
+       Design System - Adapted from Test/web-display
+       ========================================= */
+        :root {
+            --bg-primary: #0b1221;
+            --bg-card: #111a33;
+            --border-color: #1f2b4d;
+            --text-primary: #e8f0ff;
+            --text-secondary: #9fcdff;
+            --accent-blue: #1e7bff;
+            --success-green: #22c55e;
+            --error-red: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            background-image:
+                radial-gradient(circle at 20% 50%, rgba(30, 123, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(159, 205, 255, 0.05) 0%, transparent 50%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* Main Card */
+        #card {
+            background: var(--bg-card);
+            padding: 32px 40px;
+            border-radius: 24px;
+            box-shadow:
+                0 20px 60px rgba(0, 0, 0, 0.5),
+                0 0 80px rgba(30, 123, 255, 0.1);
+            text-align: center;
+            max-width: 480px;
+            width: 100%;
+            border: 1px solid var(--border-color);
+        }
+
+        .pill {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #1f2b4d, #2a3f6d);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        h1 {
+            margin: 16px 0 24px;
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff, #9fcdff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* QR Container */
+        .qr-container {
+            position: relative;
+            display: inline-block;
+            padding: 16px;
+            background: white;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        #qr {
+            width: 280px;
+            height: 280px;
+            object-fit: contain;
+            display: block;
+        }
+
+        .qr-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .qr-overlay.visible {
+            opacity: 1;
+        }
+
+        .qr-overlay-text {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--success-green);
+        }
+
+        /* Status */
+        #status {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        #expiry {
+            font-size: 14px;
+            color: var(--text-secondary);
+            opacity: 0.7;
+        }
+
+        /* Buttons */
+        .button-row {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1e7bff, #3d8bff);
+            color: white;
+            box-shadow: 0 4px 16px rgba(30, 123, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 6px 24px rgba(30, 123, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Connection Status */
+        .connection-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--error-red);
+        }
+
+        .status-dot.connected {
+            background: var(--success-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            width: 280px;
+            height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .spinner::after {
+            content: '';
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--border-color);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Fullscreen Button */
+        .fullscreen-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .fullscreen-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* Responsive */
+        @media (max-width: 520px) {
+            #card {
+                padding: 24px;
+            }
+
+            #qr {
+                width: 220px;
+                height: 220px;
+            }
+
+            .spinner {
+                width: 220px;
+                height: 220px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <button class="fullscreen-btn" id="fullscreenBtn" title="Toggle Fullscreen">⛶</button>
+
+    <div id="card">
+        <div class="pill">Display</div>
+        <h1>Scan Me</h1>
+
+        <div class="qr-container">
+            <div class="spinner" id="spinner"></div>
+            <img id="qr" alt="QR code" style="display:none;" />
+            <div class="qr-overlay" id="qrOverlay">
+                <span class="qr-overlay-text">✓ Scanned!</span>
+            </div>
+        </div>
+
+        <p id="status">Waiting for QR...</p>
+        <p id="expiry"></p>
+
+        <div class="button-row">
+            <button class="btn-primary" id="downloadBtn" style="display:none;">
+                ⬇ Download QR
+            </button>
+            <button class="btn-secondary" id="refreshBtn">
+                🔄 Refresh
+            </button>
+        </div>
+
+        <div class="connection-status">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="connectionText">Connecting...</span>
+        </div>
+    </div>
+
+    <!-- Socket.IO Client -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        /**
+         * Display Module - Adapted from Test/web-display/index.html
+         * 
+         * Features:
+         * - Auto-updating QR display via Socket.IO
+         * - QR download functionality (NEW)
+         * - Fullscreen support
+         * - Visual feedback on scan
+         */
+
+        const params = new URLSearchParams(location.search);
+        const DISPLAY_TOKEN = params.get('token') || 'demo-display-token';
+        const displayId = params.get('displayId') || 'default-display';
+        let API;
+        let currentQrData = null;
+
+        // ==========================================================================
+        // API Resolution
+        // ==========================================================================
+
+        async function resolveApi() {
+            const explicit = params.get('api');
+            const origin = location.origin && location.origin.startsWith('http') ? location.origin : null;
+            const candidates = [explicit, origin, 'http://localhost:4000', 'http://127.0.0.1:4000']
+                .filter(Boolean)
+                .filter((v, i, arr) => arr.indexOf(v) === i);
+
+            for (const base of candidates) {
+                try {
+                    const res = await fetch(`${base}/health`, { mode: 'cors' });
+                    if (res.ok) return base;
+                } catch (_err) { }
+            }
+            throw new Error('No reachable API (tried ' + candidates.join(', ') + ')');
+        }
+
+        // ==========================================================================
+        // QR Display Functions
+        // ==========================================================================
+
+        async function fetchNewQr() {
+            try {
+                showLoading();
+                const res = await fetch(`${API}/display/qr/current?displayId=${encodeURIComponent(displayId)}`, {
+                    headers: { 'Authorization': `Bearer ${DISPLAY_TOKEN}` }
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                setQr(data);
+            } catch (err) {
+                document.getElementById('status').textContent = `QR fetch failed: ${err.message}`;
+                document.getElementById('expiry').textContent = 'Ask admin to generate a new QR.';
+                hideLoading();
+            }
+        }
+
+        function setQr(data) {
+            currentQrData = data;
+
+            const qrImg = document.getElementById('qr');
+            const spinner = document.getElementById('spinner');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const overlay = document.getElementById('qrOverlay');
+
+            // Hide overlay and spinner
+            overlay.classList.remove('visible');
+            spinner.style.display = 'none';
+
+            // Show QR
+            qrImg.src = data.imageDataUrl;
+            qrImg.style.display = 'block';
+            downloadBtn.style.display = 'flex';
+
+            document.getElementById('status').textContent = 'Awaiting scan...';
+            document.getElementById('expiry').textContent = `Expires at ${new Date(data.expiresAt).toLocaleTimeString()}`;
+        }
+
+        function showLoading() {
+            document.getElementById('spinner').style.display = 'flex';
+            document.getElementById('qr').style.display = 'none';
+            document.getElementById('downloadBtn').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('spinner').style.display = 'none';
+        }
+
+        function showScannedFeedback(timestamp) {
+            const overlay = document.getElementById('qrOverlay');
+            overlay.classList.add('visible');
+            document.getElementById('status').textContent = `Scanned at ${new Date(timestamp).toLocaleTimeString()}`;
+
+            // Overlay will be hidden when new QR arrives
+        }
+
+        function updateConnectionStatus(connected) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('connectionText');
+
+            if (connected) {
+                dot.classList.add('connected');
+                text.textContent = 'Connected';
+            } else {
+                dot.classList.remove('connected');
+                text.textContent = 'Disconnected';
+            }
+        }
+
+        // ==========================================================================
+        // Download QR
+        // ==========================================================================
+
+        function downloadQr() {
+            if (!currentQrData?.imageDataUrl) return;
+
+            const link = document.createElement('a');
+            link.href = currentQrData.imageDataUrl;
+            link.download = `qr-${displayId}-${Date.now()}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // ==========================================================================
+        // Fullscreen
+        // ==========================================================================
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => { });
+            } else {
+                document.exitFullscreen().catch(() => { });
+            }
+        }
+
+        // ==========================================================================
+        // Event Handlers
+        // ==========================================================================
+
+        document.getElementById('downloadBtn').addEventListener('click', downloadQr);
+        document.getElementById('refreshBtn').addEventListener('click', fetchNewQr);
+        document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
+
+        // ==========================================================================
+        // Initialization
+        // ==========================================================================
+
+        (async () => {
+            try {
+                API = await resolveApi();
+
+                // Fetch initial QR
+                await fetchNewQr();
+
+                // Initialize Socket.IO
+                const socket = io(API, {
+                    query: { role: 'display', token: DISPLAY_TOKEN, displayId },
+                    transports: ['websocket'],
+                    reconnectionAttempts: 10,
+                });
+
+                socket.on('connect', () => {
+                    updateConnectionStatus(true);
+                });
+
+                socket.on('disconnect', () => {
+                    updateConnectionStatus(false);
+                });
+
+                socket.on('ready', fetchNewQr);
+
+                socket.on('qr:new', (data) => {
+                    console.log('New QR received');
+                    setQr(data);
+                });
+
+                socket.on('qr:consumed', ({ at }) => {
+                    showScannedFeedback(at);
+                });
+
+                socket.on('connect_error', (err) => {
+                    updateConnectionStatus(false);
+                    document.getElementById('status').textContent = `Socket error: ${err.message}`;
+                    console.error(err);
+                });
+
+            } catch (err) {
+                document.getElementById('status').textContent = err.message;
+                hideLoading();
+                updateConnectionStatus(false);
+            }
+        })();
+    </script>
+</body>
+
+</html>
