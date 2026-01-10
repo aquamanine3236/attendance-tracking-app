@@ -26,6 +26,7 @@ import QRCode from 'qrcode';
 import { Server } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
+import * as XLSX from 'xlsx';
 
 // =============================================================================
 // Configuration
@@ -102,7 +103,11 @@ const requireRole = (role) => requireAnyRole([role]);
  */
 const requireAnyRole = (roles) => (req, res, next) => {
   const auth = req.headers.authorization || '';
-  const token = auth.replace('Bearer ', '');
+  const headerToken = auth.replace('Bearer ', '');
+  // Also check query parameter for browser downloads (window.open)
+  const queryToken = req.query.token || '';
+  const token = headerToken || queryToken;
+
   const matched = roles.find((r) => TOKEN_MAP[r] && token === TOKEN_MAP[r]);
   if (matched) {
     req.role = matched;
@@ -268,7 +273,7 @@ app.get('/admin/scans', requireRole('admin'), (req, res) => {
  * GET /admin/export.csv
  */
 app.get('/admin/export.csv', requireRole('admin'), (req, res) => {
-  const header = 'id,fullName,jobTitle,employeeId,lat,lng,accuracy,createdAt,displayId\n';
+  const header = 'id,fullName,jobTitle,employeeId,lat,lng,accuracy,createdAt\n';
   const rows = scans
     .map((s) =>
       [
@@ -280,7 +285,6 @@ app.get('/admin/export.csv', requireRole('admin'), (req, res) => {
         s.lng ?? '',
         s.accuracy ?? '',
         s.createdAt,
-        s.displayId,
       ]
         .map((v) => `"${String(v).replace(/"/g, '""')}"`)
         .join(',')
@@ -289,6 +293,78 @@ app.get('/admin/export.csv', requireRole('admin'), (req, res) => {
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="scans.csv"');
   res.send(header + rows);
+});
+
+/**
+ * Admin: Export scans as XLSX (Excel)
+ * GET /admin/export.xlsx
+ */
+app.get('/admin/export.xlsx', requireRole('admin'), (req, res) => {
+  // Prepare data for Excel
+  const data = scans.map((s) => ({
+    'ID': s.id,
+    'Full Name': s.fullName,
+    'Job Title': s.jobTitle,
+    'Employee ID': s.employeeId,
+    'Latitude': s.lat ?? '',
+    'Longitude': s.lng ?? '',
+    'Accuracy': s.accuracy ?? '',
+    'Scan Time': s.createdAt,
+  }));
+
+  // Create workbook and worksheet
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.json_to_sheet(data);
+
+  // Set column widths for better readability
+  worksheet['!cols'] = [
+    { wch: 20 },  // ID
+    { wch: 25 },  // Full Name
+    { wch: 20 },  // Job Title
+    { wch: 15 },  // Employee ID
+    { wch: 12 },  // Latitude
+    { wch: 12 },  // Longitude
+    { wch: 10 },  // Accuracy
+    { wch: 25 },  // Scan Time
+  ];
+
+  // Add worksheet to workbook
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Scans');
+
+  // Generate buffer
+  const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+  // Generate filename with current date (dd-mm-yyyy format)
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const year = now.getFullYear();
+  const filename = `Attendance_${day}-${month}-${year}.xlsx`;
+
+  // Send response
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(buffer);
+});
+
+/**
+ * Admin: Reset all scans (clear dashboard)
+ * POST /admin/reset
+ */
+app.post('/admin/reset', requireRole('admin'), (req, res) => {
+  // Clear all scans
+  scans.length = 0;
+
+  // Clear all QR sessions
+  qrSessions.clear();
+  latestQrByDisplay.clear();
+
+  console.log('Dashboard reset by admin');
+
+  // Notify connected clients
+  io.to('admin').emit('dashboard:reset');
+
+  res.json({ ok: true, message: 'All scans cleared' });
 });
 
 // =============================================================================

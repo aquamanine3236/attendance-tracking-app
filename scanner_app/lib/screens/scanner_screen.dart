@@ -8,6 +8,9 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/api_service.dart';
+// Conditional import for web QR scanner
+import '../services/web_qr_scanner.dart'
+    if (dart.library.io) '../services/web_qr_scanner_stub.dart';
 import 'user_form_screen.dart';
 
 class ScannerScreen extends StatefulWidget {
@@ -92,15 +95,54 @@ class _ScannerScreenState extends State<ScannerScreen> {
   // Handle "Can't scan" action based on platform
   void _handleCantScan() {
     if (kIsWeb) {
-      // On web, show manual token input dialog
-      _showManualTokenDialog();
+      // On web, use jsQR to scan from uploaded image
+      _pickAndScanImageWeb();
     } else {
       // On mobile, pick image from gallery
       _pickAndScanImage();
     }
   }
 
-  // Show dialog for manual token input (web fallback)
+  // Pick and scan QR image on web using jsQR
+  Future<void> _pickAndScanImageWeb() async {
+    setState(() => _isProcessing = true);
+
+    try {
+      final String? token = await WebQrScanner.pickAndScanImage();
+
+      if (token != null && token.isNotEmpty) {
+        _controller.stop();
+        _navigateToForm(token);
+        return;
+      }
+
+      // No QR code found or user cancelled
+      setState(() => _isProcessing = false);
+      if (mounted && token == null) {
+        // User likely cancelled - no need to show error
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'No QR code found in the image. Please try another image.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isProcessing = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to scan image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Show dialog for manual token input (fallback)
   void _showManualTokenDialog() {
     _tokenController.clear();
     showDialog(

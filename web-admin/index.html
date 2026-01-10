@@ -374,29 +374,28 @@
         <span id="connectionText">Connecting...</span>
       </div>
       <input id="search" placeholder="Search name, title, ID..." style="min-width: 200px;" />
-      <button id="export" class="secondary">Export CSV</button>
+      <button id="exportXlsx" class="secondary"> Export Excel</button>
+      <button id="resetDashboard" class="secondary"
+        style="background: #ef4444; color: white; border: none;">Reset</button>
     </div>
   </header>
 
   <main>
-    <!-- QR Control Panel -->
-    <div class="control-card">
-      <div class="label">QR Control</div>
-      <div class="control-row">
-        <button id="newQr">🔄 Generate New QR</button>
+    <!-- Top Row: QR Control + Stats -->
+    <div style="display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;">
+      <!-- QR Control Panel -->
+      <div class="control-card" style="flex: 1; min-width: 300px; margin-bottom: 0;">
+        <div class="label">QR Control</div>
+        <div class="control-row">
+          <button id="newQr">Generate New QR</button>
+        </div>
+        <div id="qrStatus">Send a new QR to the display screen.</div>
       </div>
-      <div id="qrStatus">Send a new QR to the display screen.</div>
-    </div>
 
-    <!-- Stats -->
-    <div class="stats-bar">
-      <div class="stat-item">
+      <!-- Stats -->
+      <div class="stat-item" style="min-width: 140px;">
         <div class="stat-label">Total Scans</div>
         <div class="stat-value" id="totalScans">0</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-label">Today</div>
-        <div class="stat-value" id="todayScans">0</div>
       </div>
     </div>
 
@@ -539,12 +538,6 @@
 
     function updateStats() {
       document.getElementById('totalScans').textContent = scans.length;
-
-      const today = new Date().toDateString();
-      const todayCount = scans.filter(s =>
-        new Date(s.createdAt).toDateString() === today
-      ).length;
-      document.getElementById('todayScans').textContent = todayCount;
     }
 
     function updateConnectionStatus(connected) {
@@ -593,9 +586,32 @@
       render(filtered);
     });
 
-    // Export CSV
-    document.getElementById('export').addEventListener('click', () => {
-      window.open(`${API}/admin/export.csv`, '_blank');
+    // Export XLSX
+    document.getElementById('exportXlsx').addEventListener('click', () => {
+      window.open(`${API}/admin/export.xlsx?token=${ADMIN_TOKEN}`, '_blank');
+    });
+
+    // Reset Dashboard
+    document.getElementById('resetDashboard').addEventListener('click', async () => {
+      if (!confirm('Are you sure you want to clear all scan data? This cannot be undone.')) {
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API}/admin/reset`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${ADMIN_TOKEN}`,
+          },
+        });
+        if (!res.ok) throw new Error('Failed to reset');
+        scans = [];
+        render(scans);
+        updateStats();
+        document.getElementById('qrStatus').textContent = '✅ Dashboard reset successfully!';
+      } catch (err) {
+        document.getElementById('qrStatus').textContent = `❌ Reset failed: ${err.message}`;
+      }
     });
 
     // Generate New QR
