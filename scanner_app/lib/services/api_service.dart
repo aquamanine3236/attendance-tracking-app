@@ -11,8 +11,8 @@ import '../models/scan_data.dart';
 class ApiService {
   // Default API endpoints to try
   static const List<String> _defaultEndpoints = [
-    'http://10.0.2.2:4000',  // Android emulator localhost
-    'http://localhost:4000',  // iOS simulator / web
+    'http://10.0.2.2:4000', // Android emulator localhost
+    'http://localhost:4000', // iOS simulator / web
     'http://127.0.0.1:4000',
   ];
 
@@ -41,7 +41,7 @@ class ApiService {
         final response = await http
             .get(Uri.parse('$base/health'))
             .timeout(const Duration(seconds: 3));
-        
+
         if (response.statusCode == 200) {
           _baseUrl = base;
           print('API connected: $base');
@@ -63,14 +63,16 @@ class ApiService {
     }
 
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/scan'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_userToken',
-        },
-        body: jsonEncode(scanData.toJson()),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/scan'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $_userToken',
+            },
+            body: jsonEncode(scanData.toJson()),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -89,7 +91,7 @@ class ApiService {
     try {
       final data = jsonDecode(response.body);
       final error = data['error'] ?? 'Unknown error';
-      
+
       // Human-friendly error messages
       switch (error) {
         case 'expired_or_unknown_qr':
@@ -100,6 +102,8 @@ class ApiService {
           return 'Invalid QR code. Please scan a valid QR code.';
         case 'invalid_payload':
           return 'Please fill in all required fields.';
+        case 'token_required':
+          return 'No QR token provided.';
         default:
           return error;
       }
@@ -107,4 +111,38 @@ class ApiService {
       return 'Server error: ${response.statusCode}';
     }
   }
+
+  /// Validate a QR token before showing the form
+  Future<QrValidationResult> validateQrToken(String token) async {
+    if (_baseUrl == null) {
+      return QrValidationResult(valid: false, error: 'API not connected');
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/qr/validate?token=${Uri.encodeComponent(token)}'),
+        headers: {
+          'Authorization': 'Bearer $_userToken',
+        },
+      ).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        return QrValidationResult(valid: true);
+      } else {
+        final error = _parseError(response);
+        return QrValidationResult(valid: false, error: error);
+      }
+    } catch (e) {
+      return QrValidationResult(
+          valid: false, error: 'Network error: ${e.toString()}');
+    }
+  }
+}
+
+/// Result of QR token validation
+class QrValidationResult {
+  final bool valid;
+  final String? error;
+
+  QrValidationResult({required this.valid, this.error});
 }

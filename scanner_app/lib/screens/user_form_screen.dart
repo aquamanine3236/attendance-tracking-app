@@ -208,6 +208,19 @@ class _UserFormScreenState extends State<UserFormScreen> {
   Future<void> _submitScan() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Check if location is available (required)
+    if (_location == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Location is required. Please enable location services and try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      _getLocation(); // Try to get location again
+      return;
+    }
+
     setState(() => _isSubmitting = true);
 
     final scanData = ScanData(
@@ -215,9 +228,9 @@ class _UserFormScreenState extends State<UserFormScreen> {
       fullName: _fullNameController.text.trim(),
       jobTitle: _jobTitleController.text.trim(),
       employeeId: _employeeIdController.text.trim(),
-      lat: _location?.latitude,
-      lng: _location?.longitude,
-      accuracy: _location?.accuracy,
+      lat: _location!.latitude,
+      lng: _location!.longitude,
+      accuracy: _location!.accuracy,
       imageData: _imageBase64, // Include image if attached
     );
 

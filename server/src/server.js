@@ -167,9 +167,49 @@ app.get('/display/qr/current', requireAnyRole(['display', 'admin']), (req, res) 
 });
 
 /**
+ * User: Validate a QR token before form submission
+ * GET /qr/validate?token=<token>
+ * Returns { valid: true } if token is valid, or { valid: false, error: string } if invalid
+ */
+app.get('/qr/validate', requireRole('user'), (req, res) => {
+  const token = req.query.token;
+
+  if (!token || typeof token !== 'string') {
+    return res.status(400).json({ valid: false, error: 'token_required' });
+  }
+
+  // Check if session exists
+  const session = qrSessions.get(token);
+  if (!session) {
+    return res.status(400).json({ valid: false, error: 'expired_or_unknown_qr' });
+  }
+
+  // Check if already used
+  if (session.status !== 'active' && !ALLOW_MULTI_SCAN) {
+    return res.status(409).json({ valid: false, error: 'already_used' });
+  }
+
+  // Check expiration
+  if (session.expiresAt < Date.now()) {
+    session.status = 'expired';
+    qrSessions.set(token, session);
+    return res.status(400).json({ valid: false, error: 'expired_or_unknown_qr' });
+  }
+
+  // Verify JWT signature
+  try {
+    jwt.verify(token, QR_SECRET);
+  } catch (err) {
+    return res.status(400).json({ valid: false, error: 'invalid_token' });
+  }
+
+  return res.json({ valid: true });
+});
+
+/**
  * User: Submit a scan
  * POST /scan
- * Body: { token, fullName, jobTitle, employeeId, lat?, lng?, accuracy?, imageData? }
+ * Body: { token, fullName, jobTitle, employeeId, lat, lng, accuracy, imageData? }
  */
 app.post('/scan', requireRole('user'), async (req, res) => {
   // Validate request body
@@ -178,9 +218,9 @@ app.post('/scan', requireRole('user'), async (req, res) => {
     fullName: z.string().trim().min(1),
     jobTitle: z.string().trim().min(1),
     employeeId: z.string().trim().min(1),
-    lat: z.number().optional(),
-    lng: z.number().optional(),
-    accuracy: z.number().optional(),
+    lat: z.number({ required_error: 'Location is required' }),
+    lng: z.number({ required_error: 'Location is required' }),
+    accuracy: z.number({ required_error: 'Location accuracy is required' }),
     imageData: z
       .string()
       .max(15_000_000, 'image too large')
@@ -300,17 +340,38 @@ app.get('/admin/export.csv', requireRole('admin'), (req, res) => {
  * GET /admin/export.xlsx
  */
 app.get('/admin/export.xlsx', requireRole('admin'), (req, res) => {
+  // Helper function to format date in GMT+7
+  const formatToGMT7 = (isoString) => {
+    const date = new Date(isoString);
+    // Add 7 hours to convert from UTC to GMT+7
+    const gmt7Date = new Date(date.getTime() + (7 * 60 * 60 * 1000));
+    const day = String(gmt7Date.getUTCDate()).padStart(2, '0');
+    const month = String(gmt7Date.getUTCMonth() + 1).padStart(2, '0');
+    const year = gmt7Date.getUTCFullYear();
+    const hours = String(gmt7Date.getUTCHours()).padStart(2, '0');
+    const minutes = String(gmt7Date.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(gmt7Date.getUTCSeconds()).padStart(2, '0');
+    return {
+      date: `${day}/${month}/${year}`,
+      time: `${hours}:${minutes}:${seconds}`
+    };
+  };
+
   // Prepare data for Excel
-  const data = scans.map((s) => ({
-    'ID': s.id,
-    'Full Name': s.fullName,
-    'Job Title': s.jobTitle,
-    'Employee ID': s.employeeId,
-    'Latitude': s.lat ?? '',
-    'Longitude': s.lng ?? '',
-    'Accuracy': s.accuracy ?? '',
-    'Scan Time': s.createdAt,
-  }));
+  const data = scans.map((s) => {
+    const datetime = formatToGMT7(s.createdAt);
+    return {
+      'ID': s.id,
+      'Full Name': s.fullName,
+      'Job Title': s.jobTitle,
+      'Employee ID': s.employeeId,
+      'Latitude': s.lat ?? '',
+      'Longitude': s.lng ?? '',
+      'Accuracy': s.accuracy ?? '',
+      'Date (GMT+7)': datetime.date,
+      'Time (GMT+7)': datetime.time,
+    };
+  });
 
   // Create workbook and worksheet
   const workbook = XLSX.utils.book_new();
@@ -325,7 +386,8 @@ app.get('/admin/export.xlsx', requireRole('admin'), (req, res) => {
     { wch: 12 },  // Latitude
     { wch: 12 },  // Longitude
     { wch: 10 },  // Accuracy
-    { wch: 25 },  // Scan Time
+    { wch: 15 },  // Date (GMT+7)
+    { wch: 12 },  // Time (GMT+7)
   ];
 
   // Add worksheet to workbook

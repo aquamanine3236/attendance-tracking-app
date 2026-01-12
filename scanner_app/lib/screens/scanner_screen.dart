@@ -62,24 +62,48 @@ class _ScannerScreenState extends State<ScannerScreen> {
     }
   }
 
-  void _navigateToForm(String token) {
-    Navigator.of(context)
-        .push(
-      MaterialPageRoute(
-        builder: (context) => UserFormScreen(
-          token: token,
-          apiService: widget.apiService,
+  Future<void> _navigateToForm(String token) async {
+    // Validate QR before proceeding to form
+    final result = await widget.apiService.validateQrToken(token);
+
+    if (!result.valid) {
+      // Show error and resume scanning
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.error ?? 'Invalid QR code'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() {
+          _isProcessing = false;
+          _lastScannedCode = null;
+        });
+        _controller.start();
+      }
+      return;
+    }
+
+    // Navigate to form if valid
+    if (mounted) {
+      Navigator.of(context)
+          .push(
+        MaterialPageRoute(
+          builder: (context) => UserFormScreen(
+            token: token,
+            apiService: widget.apiService,
+          ),
         ),
-      ),
-    )
-        .then((_) {
-      // Resume scanning when returning
-      setState(() {
-        _isProcessing = false;
-        _lastScannedCode = null;
+      )
+          .then((_) {
+        // Resume scanning when returning
+        setState(() {
+          _isProcessing = false;
+          _lastScannedCode = null;
+        });
+        _controller.start();
       });
-      _controller.start();
-    });
+    }
   }
 
   Future<void> _toggleFlash() async {

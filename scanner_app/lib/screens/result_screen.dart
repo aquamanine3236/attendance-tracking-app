@@ -18,117 +18,125 @@ class ResultScreen extends StatelessWidget {
         automaticallyImplyLeading: false,
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              const Spacer(),
-
-              // Result Icon
-              Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  color: result.success
-                      ? Colors.green.withOpacity(0.1)
-                      : Colors.red.withOpacity(0.1),
-                  shape: BoxShape.circle,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height -
+                  MediaQuery.of(context).padding.top -
+                  MediaQuery.of(context).padding.bottom -
+                  kToolbarHeight -
+                  48, // padding
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Result Icon
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: result.success
+                        ? Colors.green.withOpacity(0.1)
+                        : Colors.red.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    result.success ? Icons.check_circle : Icons.error,
+                    size: 64,
+                    color: result.success ? Colors.green : Colors.red,
+                  ),
                 ),
-                child: Icon(
-                  result.success ? Icons.check_circle : Icons.error,
-                  size: 64,
-                  color: result.success ? Colors.green : Colors.red,
+                const SizedBox(height: 24),
+
+                // Title
+                Text(
+                  result.success ? 'Scan Successful!' : 'Scan Failed',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 8),
 
-              // Title
-              Text(
-                result.success ? 'Scan Successful!' : 'Scan Failed',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 8),
-
-              // Subtitle
-              Text(
-                result.success
-                    ? 'Your attendance has been recorded'
-                    : result.errorMessage ?? 'An error occurred',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
-                  fontSize: 16,
+                // Subtitle
+                Text(
+                  result.success
+                      ? 'Your attendance has been recorded'
+                      : result.errorMessage ?? 'An error occurred',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.7),
+                    fontSize: 16,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 32),
+                const SizedBox(height: 32),
 
-              // Details Card (only for success)
-              if (result.success)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                        _buildDetailRow(
-                          context,
-                          Icons.person,
-                          'Name',
-                          result.fullName,
-                        ),
-                        const Divider(height: 24),
-                        _buildDetailRow(
-                          context,
-                          Icons.work,
-                          'Position',
-                          result.jobTitle,
-                        ),
-                        const Divider(height: 24),
-                        _buildDetailRow(
-                          context,
-                          Icons.badge,
-                          'Employee ID',
-                          result.employeeId,
-                        ),
-                        const Divider(height: 24),
-                        _buildDetailRow(
-                          context,
-                          Icons.access_time,
-                          'Time',
-                          _formatDateTime(result.createdAt),
-                        ),
-                        if (result.lat != null) ...[
+                // Details Card (only for success)
+                if (result.success)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        children: [
+                          _buildDetailRow(
+                            context,
+                            Icons.person,
+                            'Name',
+                            result.fullName,
+                          ),
                           const Divider(height: 24),
                           _buildDetailRow(
                             context,
-                            Icons.location_on,
-                            'Location',
-                            '${result.lat!.toStringAsFixed(5)}, ${result.lng?.toStringAsFixed(5) ?? ''}',
+                            Icons.work,
+                            'Position',
+                            result.jobTitle,
                           ),
+                          const Divider(height: 24),
+                          _buildDetailRow(
+                            context,
+                            Icons.badge,
+                            'Employee ID',
+                            result.employeeId,
+                          ),
+                          const Divider(height: 24),
+                          _buildDetailRow(
+                            context,
+                            Icons.access_time,
+                            'Time',
+                            _formatDateTime(result.createdAt),
+                          ),
+                          if (result.lat != null) ...[
+                            const Divider(height: 24),
+                            _buildDetailRow(
+                              context,
+                              Icons.location_on,
+                              'Location',
+                              '${result.lat!.toStringAsFixed(5)}, ${result.lng?.toStringAsFixed(5) ?? ''}',
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
+                    ),
+                  ),
+
+                const SizedBox(height: 32),
+
+                // Action Buttons
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // Pop back to scanner
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                    },
+                    child: Text(
+                      result.success ? 'Done' : 'Try Again',
                     ),
                   ),
                 ),
-
-              const Spacer(),
-
-              // Action Buttons
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // Pop back to scanner
-                    Navigator.of(context).popUntil((route) => route.isFirst);
-                  },
-                  child: Text(
-                    result.success ? 'Done' : 'Try Again',
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
