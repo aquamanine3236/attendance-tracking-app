@@ -9,8 +9,9 @@ import 'package:http/http.dart' as http;
 import '../models/scan_data.dart';
 
 class ApiService {
-  // Default API endpoints to try
+  // Default API endpoints to try (production first, then local development)
   static const List<String> _defaultEndpoints = [
+    'https://testchamcong.merlinle.com', // Production server
     'http://10.0.2.2:4000', // Android emulator localhost
     'http://localhost:4000', // iOS simulator / web
     'http://127.0.0.1:4000',

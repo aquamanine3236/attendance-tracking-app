@@ -22,11 +22,17 @@ import helmet from 'helmet';
 import http from 'http';
 import jwt from 'jsonwebtoken';
 import { nanoid } from 'nanoid';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import QRCode from 'qrcode';
 import { Server } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import * as XLSX from 'xlsx';
+
+// ES Module __dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // =============================================================================
 // Configuration
@@ -74,6 +80,7 @@ const io = new Server(server, {
 // Security middleware
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: false, // Disable CSP for inline scripts in static files
 }));
 
 // CORS configuration - allow all origins for demo
@@ -86,6 +93,16 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '15mb' }));
+
+// =============================================================================
+// Static File Serving for Web Apps
+// =============================================================================
+
+// Serve web-display at /display
+app.use('/display', express.static(path.join(__dirname, '../../web-display')));
+
+// Serve web-admin at /admin
+app.use('/admin', express.static(path.join(__dirname, '../../web-admin')));
 
 // =============================================================================
 // Authentication Middleware
