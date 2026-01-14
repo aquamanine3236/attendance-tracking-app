@@ -5,7 +5,7 @@
 import 'dart:html' as html;
 import 'dart:async';
 // ignore: avoid_web_libraries_in_flutter
-import 'dart:js_util' as js_util;
+import 'dart:js' as js;
 import 'dart:typed_data';
 
 /// Service to decode QR codes from images on web platform
@@ -102,33 +102,21 @@ class WebQrScanner {
   /// Call the jsQR library to decode QR from image data
   static String? _callJsQr(Uint8ClampedList data, int width, int height) {
     try {
-      // Check if jsQR is available
-      final jsQR = js_util.getProperty(html.window, 'jsQR');
+      // Check if jsQR is available on window
+      final jsQR = js.context['jsQR'];
       if (jsQR == null) {
-        print('jsQR library not loaded');
         return null;
       }
 
-      // Create a Uint8ClampedArray in JavaScript
-      final jsData = js_util.callConstructor(
-        js_util.getProperty(html.window, 'Uint8ClampedArray'),
-        [data],
-      );
-
       // Call jsQR(imageData, width, height)
-      final result = js_util.callMethod(
-        html.window,
-        'jsQR',
-        [jsData, width, height],
-      );
+      final result = jsQR.apply([data, width, height]);
 
       if (result == null) return null;
 
       // Get the data property from result
-      final qrData = js_util.getProperty(result, 'data');
+      final qrData = result['data'];
       return qrData?.toString();
     } catch (e) {
-      print('jsQR error: $e');
       return null;
     }
   }
