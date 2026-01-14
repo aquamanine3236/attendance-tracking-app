@@ -1,35 +1,343 @@
-// Scanner Screen - QR code scanning with camera
+// Scanner Screen - Profile-based attendance with Check In/Out
 //
-// Adapted from qr_code_scanner/example/lib/main.dart patterns.
-// Uses mobile_scanner package for QR detection.
+// Features:
+// - Profile section with avatar, name, employee ID
+// - Greeting with job title
+// - Check In and Check Out buttons (unified theme)
+// - QR scanner opens with type parameter
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/api_service.dart';
-// Conditional import for web QR scanner
+import '../services/location_service.dart';
 import '../services/web_qr_scanner.dart'
     if (dart.library.io) '../services/web_qr_scanner_stub.dart';
-import 'user_form_screen.dart';
+import '../models/scan_data.dart';
+import 'login_screen.dart';
+import 'result_screen.dart';
 
 class ScannerScreen extends StatefulWidget {
   final ApiService apiService;
+  final UserData userData;
 
-  const ScannerScreen({super.key, required this.apiService});
+  const ScannerScreen({
+    super.key,
+    required this.apiService,
+    required this.userData,
+  });
 
   @override
   State<ScannerScreen> createState() => _ScannerScreenState();
 }
 
 class _ScannerScreenState extends State<ScannerScreen> {
+  final LocationService _locationService = LocationService();
+  LocationData? _cachedLocation;
+  bool _isLoadingLocation = true;
+  String? _locationError;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLocation();
+  }
+
+  Future<void> _fetchLocation() async {
+    setState(() {
+      _isLoadingLocation = true;
+      _locationError = null;
+    });
+
+    try {
+      final location = await _locationService.getCurrentLocation();
+      if (mounted) {
+        setState(() {
+          _cachedLocation = location;
+          _isLoadingLocation = false;
+          if (location == null) {
+            _locationError =
+                'Could not get location. Please enable location services.';
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingLocation = false;
+          _locationError = 'Location access failed. Please try again.';
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Extract first name for greeting
+    final firstName = widget.userData.fullName.split(' ').first;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Attendance'),
+        automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+              );
+            },
+            tooltip: 'Logout',
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Profile Row
+                  Row(
+                    children: [
+                      // Avatar
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withAlpha(40),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            firstName[0].toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      // Name and Employee ID
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.userData.fullName,
+                            style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Employee ID: ${widget.userData.employeeId}',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.secondary,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Greeting Section
+                  Text(
+                    'Hi, $firstName.',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    widget.userData.jobTitle,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.secondary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+
+                  // Location status
+                  if (_isLoadingLocation)
+                    Row(
+                      children: [
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Theme.of(context).colorScheme.secondary,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Getting your location...',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.6),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    )
+                  else if (_locationError != null)
+                    InkWell(
+                      onTap: _fetchLocation,
+                      child: Row(
+                        children: [
+                          const Icon(Icons.warning_amber_rounded,
+                              size: 18, color: Colors.orange),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '$_locationError Tap to retry.',
+                              style: const TextStyle(
+                                  color: Colors.orange, fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.location_on,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.secondary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Location ready',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.secondary,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  const SizedBox(height: 28),
+
+                  // Action Buttons - List style with chevrons
+                  _buildActionTile(
+                    context,
+                    'Check In',
+                    _cachedLocation != null
+                        ? () => _openScanner('check-in')
+                        : null,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildActionTile(
+                    context,
+                    'Check Out',
+                    _cachedLocation != null
+                        ? () => _openScanner('check-out')
+                        : null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionTile(
+      BuildContext context, String title, VoidCallback? onTap) {
+    final isDisabled = onTap == null;
+    return Material(
+      color: const Color(0xFF111A33),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Opacity(
+          opacity: isDisabled ? 0.5 : 1.0,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFF1C2637)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 22,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openScanner(String type) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => QrScannerView(
+          apiService: widget.apiService,
+          userData: widget.userData,
+          scanType: type,
+          cachedLocation: _cachedLocation!,
+        ),
+      ),
+    );
+  }
+}
+
+/// QR Scanner View - Camera scanning with processing
+class QrScannerView extends StatefulWidget {
+  final ApiService apiService;
+  final UserData userData;
+  final String scanType;
+  final LocationData cachedLocation;
+
+  const QrScannerView({
+    super.key,
+    required this.apiService,
+    required this.userData,
+    required this.scanType,
+    required this.cachedLocation,
+  });
+
+  @override
+  State<QrScannerView> createState() => _QrScannerViewState();
+}
+
+class _QrScannerViewState extends State<QrScannerView> {
   final MobileScannerController _controller = MobileScannerController(
     detectionSpeed: DetectionSpeed.normal,
     facing: CameraFacing.back,
     torchEnabled: false,
   );
   final ImagePicker _imagePicker = ImagePicker();
-  final TextEditingController _tokenController = TextEditingController();
 
   bool _isProcessing = false;
   String? _lastScannedCode;
@@ -37,7 +345,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
   @override
   void dispose() {
     _controller.dispose();
-    _tokenController.dispose();
     super.dispose();
   }
 
@@ -54,24 +361,22 @@ class _ScannerScreenState extends State<ScannerScreen> {
           _lastScannedCode = code;
         });
 
-        // Pause scanning and navigate to form
         _controller.stop();
-        _navigateToForm(code);
+        _processQrCode(code);
         break;
       }
     }
   }
 
-  Future<void> _navigateToForm(String token) async {
-    // Validate QR before proceeding to form
-    final result = await widget.apiService.validateQrToken(token);
+  Future<void> _processQrCode(String token) async {
+    // Validate QR before submitting
+    final validation = await widget.apiService.validateQrToken(token);
 
-    if (!result.valid) {
-      // Show error and resume scanning
+    if (!validation.valid) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result.error ?? 'Invalid QR code'),
+            content: Text(validation.error ?? 'Invalid QR code'),
             backgroundColor: Colors.red,
           ),
         );
@@ -84,25 +389,29 @@ class _ScannerScreenState extends State<ScannerScreen> {
       return;
     }
 
-    // Navigate to form if valid
+    // Use cached location
+    final location = widget.cachedLocation;
+
+    // Submit scan with user data and type
+    final scanData = ScanData(
+      token: token,
+      fullName: widget.userData.fullName,
+      jobTitle: widget.userData.jobTitle,
+      employeeId: widget.userData.employeeId,
+      type: widget.scanType,
+      lat: location.latitude,
+      lng: location.longitude,
+      accuracy: location.accuracy,
+    );
+
+    final result = await widget.apiService.submitScan(scanData);
+
     if (mounted) {
-      Navigator.of(context)
-          .push(
+      Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (context) => UserFormScreen(
-            token: token,
-            apiService: widget.apiService,
-          ),
+          builder: (context) => ResultScreen(result: result),
         ),
-      )
-          .then((_) {
-        // Resume scanning when returning
-        setState(() {
-          _isProcessing = false;
-          _lastScannedCode = null;
-        });
-        _controller.start();
-      });
+      );
     }
   }
 
@@ -116,18 +425,14 @@ class _ScannerScreenState extends State<ScannerScreen> {
     setState(() {});
   }
 
-  // Handle "Can't scan" action based on platform
   void _handleCantScan() {
     if (kIsWeb) {
-      // On web, use jsQR to scan from uploaded image
       _pickAndScanImageWeb();
     } else {
-      // On mobile, pick image from gallery
       _pickAndScanImage();
     }
   }
 
-  // Pick and scan QR image on web using jsQR
   Future<void> _pickAndScanImageWeb() async {
     setState(() => _isProcessing = true);
 
@@ -136,19 +441,15 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
       if (token != null && token.isNotEmpty) {
         _controller.stop();
-        _navigateToForm(token);
+        _processQrCode(token);
         return;
       }
 
-      // No QR code found or user cancelled
       setState(() => _isProcessing = false);
-      if (mounted && token == null) {
-        // User likely cancelled - no need to show error
-      } else if (mounted) {
+      if (mounted && token != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-                'No QR code found in the image. Please try another image.'),
+            content: Text('No QR code found in the image.'),
             backgroundColor: Colors.orange,
           ),
         );
@@ -166,59 +467,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
     }
   }
 
-  // Show dialog for manual token input (fallback)
-  void _showManualTokenDialog() {
-    _tokenController.clear();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF111A33),
-        title: const Text('Enter QR Token'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Copy the token from the QR code and paste it below:',
-              style: TextStyle(
-                color: Colors.white.withAlpha(179),
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _tokenController,
-              decoration: const InputDecoration(
-                hintText: 'Paste token here...',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
-              autofocus: true,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final token = _tokenController.text.trim();
-              if (token.isNotEmpty) {
-                Navigator.pop(context);
-                _controller.stop();
-                _navigateToForm(token);
-              }
-            },
-            child: const Text('Submit'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Pick QR code image from gallery and scan it (mobile only)
   Future<void> _pickAndScanImage() async {
     try {
       final XFile? image = await _imagePicker.pickImage(
@@ -229,25 +477,22 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
       setState(() => _isProcessing = true);
 
-      // Use MobileScanner to analyze the image
       final BarcodeCapture? result = await _controller.analyzeImage(image.path);
 
       if (result != null && result.barcodes.isNotEmpty) {
         final String? code = result.barcodes.first.rawValue;
         if (code != null && code.isNotEmpty) {
           _controller.stop();
-          _navigateToForm(code);
+          _processQrCode(code);
           return;
         }
       }
 
-      // No QR code found
       setState(() => _isProcessing = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-                'No QR code found in the image. Please try another image.'),
+            content: Text('No QR code found in the image.'),
             backgroundColor: Colors.orange,
           ),
         );
@@ -268,12 +513,12 @@ class _ScannerScreenState extends State<ScannerScreen> {
   @override
   Widget build(BuildContext context) {
     final scanArea = MediaQuery.of(context).size.width * 0.7;
+    final isCheckIn = widget.scanType == 'check-in';
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scan QR Code'),
+        title: Text(isCheckIn ? 'Check In' : 'Check Out'),
         actions: [
-          // Flash toggle
           IconButton(
             icon: ValueListenableBuilder(
               valueListenable: _controller,
@@ -287,7 +532,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
             ),
             onPressed: _toggleFlash,
           ),
-          // Camera switch
           IconButton(
             icon: ValueListenableBuilder(
               valueListenable: _controller,
@@ -305,19 +549,43 @@ class _ScannerScreenState extends State<ScannerScreen> {
       ),
       body: Column(
         children: [
+          // Type indicator
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            color: Theme.of(context).colorScheme.primary.withAlpha(30),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  isCheckIn ? Icons.login : Icons.logout,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  isCheckIn
+                      ? 'Scanning for Check In'
+                      : 'Scanning for Check Out',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           // Scanner View
           Expanded(
             flex: 4,
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // Camera Preview
                 MobileScanner(
                   controller: _controller,
                   onDetect: _onDetect,
                 ),
-
-                // Scan Overlay
                 CustomPaint(
                   painter: ScanOverlayPainter(
                     scanAreaSize: scanArea,
@@ -325,8 +593,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
                   ),
                   child: Container(),
                 ),
-
-                // Scan Area Indicator
                 Container(
                   width: scanArea,
                   height: scanArea,
@@ -340,8 +606,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-
-                // Processing Indicator
                 if (_isProcessing)
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -378,7 +642,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
             ),
           ),
 
-          // Instructions & Upload Button
+          // Instructions
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(24),
@@ -400,8 +664,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-
-                // Cannot scan? Upload image button
                 TextButton.icon(
                   onPressed: _isProcessing ? null : _handleCantScan,
                   icon: const Icon(Icons.photo_library_outlined, size: 20),
@@ -445,7 +707,6 @@ class ScanOverlayPainter extends CustomPainter {
       height: scanAreaSize,
     );
 
-    // Draw dark overlay with cutout
     final path = Path()
       ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
       ..addRRect(RRect.fromRectAndRadius(scanRect, const Radius.circular(12)))
@@ -453,7 +714,6 @@ class ScanOverlayPainter extends CustomPainter {
 
     canvas.drawPath(path, paint);
 
-    // Draw corner indicators
     final cornerPaint = Paint()
       ..color = borderColor
       ..style = PaintingStyle.stroke
@@ -462,7 +722,6 @@ class ScanOverlayPainter extends CustomPainter {
 
     const cornerLength = 30.0;
 
-    // Top-left
     canvas.drawLine(
       Offset(scanRect.left, scanRect.top + cornerLength),
       Offset(scanRect.left, scanRect.top),
@@ -474,7 +733,6 @@ class ScanOverlayPainter extends CustomPainter {
       cornerPaint,
     );
 
-    // Top-right
     canvas.drawLine(
       Offset(scanRect.right - cornerLength, scanRect.top),
       Offset(scanRect.right, scanRect.top),
@@ -486,7 +744,6 @@ class ScanOverlayPainter extends CustomPainter {
       cornerPaint,
     );
 
-    // Bottom-left
     canvas.drawLine(
       Offset(scanRect.left, scanRect.bottom - cornerLength),
       Offset(scanRect.left, scanRect.bottom),
@@ -498,7 +755,6 @@ class ScanOverlayPainter extends CustomPainter {
       cornerPaint,
     );
 
-    // Bottom-right
     canvas.drawLine(
       Offset(scanRect.right - cornerLength, scanRect.bottom),
       Offset(scanRect.right, scanRect.bottom),

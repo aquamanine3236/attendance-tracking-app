@@ -1,19 +1,6 @@
-/**
- * Demo QR Scanner App
- * 
- * Main entry point for the Flutter mobile scanner application.
- * Adapted from qr_code_scanner/example patterns.
- * 
- * Features:
- * - QR code scanning with camera
- * - User info form (name, job title, employee ID)
- * - GPS location capture
- * - Real-time API submission
- */
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'screens/home_screen.dart';
+import 'screens/login_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,7 +35,6 @@ class DemoScannerApp extends StatelessWidget {
           primary: const Color(0xFF1E7BFF),
           secondary: const Color(0xFF9FCDFF),
           surface: const Color(0xFF0F1626),
-          background: const Color(0xFF0B1221),
           error: const Color(0xFFEF4444),
         ),
         scaffoldBackgroundColor: const Color(0xFF0B1221),
@@ -103,7 +89,7 @@ class DemoScannerApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const HomeScreen(),
+      home: const LoginScreen(),
     );
   }
 }

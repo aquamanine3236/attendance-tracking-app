@@ -5,7 +5,7 @@
 import 'dart:html' as html;
 import 'dart:async';
 // ignore: avoid_web_libraries_in_flutter
-import 'dart:js' as js;
+import 'dart:js_util' as js_util;
 import 'dart:typed_data';
 
 /// Service to decode QR codes from images on web platform
@@ -18,7 +18,10 @@ class WebQrScanner {
     // Create file input element
     final input = html.FileUploadInputElement()..accept = 'image/*';
 
+    bool picked = false;
+
     input.onChange.listen((event) async {
+      picked = true;
       final files = input.files;
       if (files == null || files.isEmpty) {
         completer.complete(null);
@@ -30,8 +33,15 @@ class WebQrScanner {
       completer.complete(result);
     });
 
-    // Handle cancel
-    input.onAbort.listen((_) => completer.complete(null));
+    // Handle cancel - use focus event on window
+    html.window.addEventListener('focus', (event) {
+      // Delay to allow onChange to fire first if a file was selected
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (!picked && !completer.isCompleted) {
+          completer.complete(null);
+        }
+      });
+    });
 
     // Trigger file picker
     input.click();
@@ -93,22 +103,29 @@ class WebQrScanner {
   static String? _callJsQr(Uint8ClampedList data, int width, int height) {
     try {
       // Check if jsQR is available
-      if (!js.context.hasProperty('jsQR')) {
+      final jsQR = js_util.getProperty(html.window, 'jsQR');
+      if (jsQR == null) {
         print('jsQR library not loaded');
         return null;
       }
 
+      // Create a Uint8ClampedArray in JavaScript
+      final jsData = js_util.callConstructor(
+        js_util.getProperty(html.window, 'Uint8ClampedArray'),
+        [data],
+      );
+
       // Call jsQR(imageData, width, height)
-      final result = js.context.callMethod('jsQR', [
-        js.JsObject.jsify(data.toList()),
-        width,
-        height,
-      ]);
+      final result = js_util.callMethod(
+        html.window,
+        'jsQR',
+        [jsData, width, height],
+      );
 
       if (result == null) return null;
 
       // Get the data property from result
-      final qrData = result['data'];
+      final qrData = js_util.getProperty(result, 'data');
       return qrData?.toString();
     } catch (e) {
       print('jsQR error: $e');

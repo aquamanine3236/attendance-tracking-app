@@ -235,6 +235,7 @@ app.post('/scan', requireRole('user'), async (req, res) => {
     fullName: z.string().trim().min(1),
     jobTitle: z.string().trim().min(1),
     employeeId: z.string().trim().min(1),
+    type: z.enum(['check-in', 'check-out']),
     lat: z.number({ required_error: 'Location is required' }),
     lng: z.number({ required_error: 'Location is required' }),
     accuracy: z.number({ required_error: 'Location accuracy is required' }),
@@ -250,7 +251,7 @@ app.post('/scan', requireRole('user'), async (req, res) => {
     return res.status(400).json({ error: 'invalid_payload', details: parsed.error.flatten() });
   }
 
-  const { token, fullName, jobTitle, employeeId, lat, lng, accuracy, imageData } = parsed.data;
+  const { token, fullName, jobTitle, employeeId, type, lat, lng, accuracy, imageData } = parsed.data;
 
   // Validate QR session
   const session = qrSessions.get(token);
@@ -288,6 +289,7 @@ app.post('/scan', requireRole('user'), async (req, res) => {
     fullName,
     jobTitle,
     employeeId,
+    type,
     lat,
     lng,
     accuracy,
@@ -382,6 +384,7 @@ app.get('/admin/export.xlsx', requireRole('admin'), (req, res) => {
       'Full Name': s.fullName,
       'Job Title': s.jobTitle,
       'Employee ID': s.employeeId,
+      'Type': s.type || '',
       'Latitude': s.lat ?? '',
       'Longitude': s.lng ?? '',
       'Accuracy': s.accuracy ?? '',
@@ -400,6 +403,7 @@ app.get('/admin/export.xlsx', requireRole('admin'), (req, res) => {
     { wch: 25 },  // Full Name
     { wch: 20 },  // Job Title
     { wch: 15 },  // Employee ID
+    { wch: 12 },  // Type
     { wch: 12 },  // Latitude
     { wch: 12 },  // Longitude
     { wch: 10 },  // Accuracy

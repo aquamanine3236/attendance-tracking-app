@@ -18,98 +18,93 @@ class ResultScreen extends StatelessWidget {
         automaticallyImplyLeading: false,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height -
-                  MediaQuery.of(context).padding.top -
-                  MediaQuery.of(context).padding.bottom -
-                  kToolbarHeight -
-                  48, // padding
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Result Icon
-                Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: result.success
-                        ? Colors.green.withOpacity(0.1)
-                        : Colors.red.withOpacity(0.1),
-                    shape: BoxShape.circle,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Result Icon
+                  Container(
+                    width: 88,
+                    height: 88,
+                    decoration: BoxDecoration(
+                      color: result.success
+                          ? Colors.green.withOpacity(0.12)
+                          : Colors.red.withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      result.success ? Icons.check_circle : Icons.error,
+                      size: 48,
+                      color: result.success ? Colors.green : Colors.red,
+                    ),
                   ),
-                  child: Icon(
-                    result.success ? Icons.check_circle : Icons.error,
-                    size: 64,
-                    color: result.success ? Colors.green : Colors.red,
+                  const SizedBox(height: 20),
+
+                  // Title
+                  Text(
+                    result.success ? 'Scan Successful!' : 'Scan Failed',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
-                ),
-                const SizedBox(height: 24),
+                  const SizedBox(height: 8),
 
-                // Title
-                Text(
-                  result.success ? 'Scan Successful!' : 'Scan Failed',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const SizedBox(height: 8),
-
-                // Subtitle
-                Text(
-                  result.success
-                      ? 'Your attendance has been recorded'
-                      : result.errorMessage ?? 'An error occurred',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
-                    fontSize: 16,
+                  // Subtitle
+                  Text(
+                    result.success
+                        ? 'Your attendance has been recorded'
+                        : result.errorMessage ?? 'An error occurred',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.6),
+                      fontSize: 15,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 32),
+                  const SizedBox(height: 28),
 
-                // Details Card (only for success)
-                if (result.success)
-                  Card(
-                    child: Padding(
+                  // Details Card (only for success)
+                  if (result.success)
+                    Container(
+                      width: double.infinity,
                       padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF111A33),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFF1C2637)),
+                      ),
                       child: Column(
                         children: [
                           _buildDetailRow(
                             context,
-                            Icons.person,
                             'Name',
                             result.fullName,
                           ),
-                          const Divider(height: 24),
+                          const SizedBox(height: 16),
                           _buildDetailRow(
                             context,
-                            Icons.work,
                             'Position',
                             result.jobTitle,
                           ),
-                          const Divider(height: 24),
+                          const SizedBox(height: 16),
                           _buildDetailRow(
                             context,
-                            Icons.badge,
                             'Employee ID',
                             result.employeeId,
                           ),
-                          const Divider(height: 24),
+                          const SizedBox(height: 16),
                           _buildDetailRow(
                             context,
-                            Icons.access_time,
                             'Time',
                             _formatDateTime(result.createdAt),
                           ),
                           if (result.lat != null) ...[
-                            const Divider(height: 24),
+                            const SizedBox(height: 16),
                             _buildDetailRow(
                               context,
-                              Icons.location_on,
                               'Location',
                               '${result.lat!.toStringAsFixed(5)}, ${result.lng?.toStringAsFixed(5) ?? ''}',
                             ),
@@ -117,25 +112,30 @@ class ResultScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                  ),
 
-                const SizedBox(height: 32),
+                  const SizedBox(height: 32),
 
-                // Action Buttons
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // Pop back to scanner
-                      Navigator.of(context).popUntil((route) => route.isFirst);
-                    },
-                    child: Text(
-                      result.success ? 'Done' : 'Try Again',
+                  // Action Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // Pop back to scanner
+                        Navigator.of(context)
+                            .popUntil((route) => route.isFirst);
+                      },
+                      child: Text(
+                        result.success ? 'Done' : 'Try Again',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -145,37 +145,29 @@ class ResultScreen extends StatelessWidget {
 
   Widget _buildDetailRow(
     BuildContext context,
-    IconData icon,
     String label,
     String value,
   ) {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          icon,
-          size: 20,
-          color: Theme.of(context).colorScheme.secondary,
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.5),
+            fontSize: 14,
+          ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.5),
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+        const SizedBox(width: 16),
+        Flexible(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.right,
           ),
         ),
       ],

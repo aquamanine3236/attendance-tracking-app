@@ -407,6 +407,7 @@
             <th>Name</th>
             <th>Title</th>
             <th>Employee ID</th>
+            <th>Type</th>
             <th>Time</th>
             <th>Location</th>
             <th>Photo</th>
@@ -414,7 +415,7 @@
         </thead>
         <tbody id="rows">
           <tr>
-            <td colspan="6" class="empty-state">
+            <td colspan="7" class="empty-state">
               <div class="empty-state-icon">📡</div>
               <div>Waiting for scans...</div>
             </td>
@@ -485,7 +486,7 @@
       if (list.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="6" class="empty-state">
+            <td colspan="7" class="empty-state">
               <div class="empty-state-icon">📡</div>
               <div>No scans found</div>
             </td>
@@ -507,10 +508,18 @@
           ? `${s.lat.toFixed(5)}, ${s.lng?.toFixed(5) ?? ''}`
           : '—';
 
+        // Type badge with color
+        const typeBadge = s.type === 'check-in'
+          ? '<span style="background: #22c55e; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">Check In</span>'
+          : s.type === 'check-out'
+            ? '<span style="background: #ef4444; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">Check Out</span>'
+            : '—';
+
         tr.innerHTML = `
           <td><strong>${escapeHtml(s.fullName)}</strong></td>
           <td>${escapeHtml(s.jobTitle)}</td>
           <td>${escapeHtml(s.employeeId)}</td>
+          <td>${typeBadge}</td>
           <td>${new Date(s.createdAt).toLocaleTimeString()}</td>
           <td>${locationStr}</td>
           <td>${s.imageData ? `<button class="photo-btn secondary" data-id="${s.id}">View</button>` : '—'}</td>
