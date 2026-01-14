@@ -10,16 +10,29 @@ import 'package:flutter/material.dart';
 import 'scanner_screen.dart';
 import '../services/api_service.dart';
 
+/// Company data passed from login
+class CompanyData {
+  final String companyId;
+  final String companyName;
+
+  const CompanyData({
+    required this.companyId,
+    required this.companyName,
+  });
+}
+
 /// User data model passed after login
 class UserData {
   final String fullName;
   final String employeeId;
   final String jobTitle;
+  final CompanyData? company;
 
   const UserData({
     required this.fullName,
     required this.employeeId,
     required this.jobTitle,
+    this.company,
   });
 }
 
@@ -74,6 +87,10 @@ class _LoginScreenState extends State<LoginScreen> {
       fullName: 'Sakshi Choudhary',
       employeeId: 'EMP-201',
       jobTitle: 'Marketing Manager',
+      company: const CompanyData(
+        companyId: 'company-1',
+        companyName: 'ABC Corporation',
+      ),
     );
 
     setState(() => _isLoading = false);

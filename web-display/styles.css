@@ -1,0 +1,346 @@
+/* =========================================
+   Design System - Enhanced QR Display
+   ========================================= */
+:root {
+    --bg-primary: #0b1221;
+    --bg-card: #111a33;
+    --border-color: #1f2b4d;
+    --text-primary: #e8f0ff;
+    --text-secondary: #9fcdff;
+    --accent-blue: #1e7bff;
+    --success-green: #22c55e;
+    --error-red: #ef4444;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg-primary);
+    background-image:
+        radial-gradient(circle at 20% 50%, rgba(30, 123, 255, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 50%, rgba(159, 205, 255, 0.05) 0%, transparent 50%);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* Main Card */
+#card {
+    background: var(--bg-card);
+    padding: 40px 48px;
+    border-radius: 24px;
+    box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.5),
+        0 0 80px rgba(30, 123, 255, 0.1);
+    text-align: center;
+    max-width: 520px;
+    width: 100%;
+    border: 1px solid var(--border-color);
+}
+
+.pill {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #1f2b4d, #2a3f6d);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+h1 {
+    margin: 16px 0 8px;
+    font-size: 32px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #fff, #9fcdff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Location Name */
+.location-name {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--accent-blue);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.location-icon {
+    font-size: 28px;
+}
+
+/* QR Container */
+.qr-container {
+    position: relative;
+    display: inline-block;
+    padding: 20px;
+    background: white;
+    border-radius: 20px;
+    margin-bottom: 28px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.qr-container.updating {
+    transform: scale(0.95);
+    opacity: 0.7;
+}
+
+#qr {
+    width: 300px;
+    height: 300px;
+    object-fit: contain;
+    display: block;
+    transition: opacity 0.3s ease;
+}
+
+.qr-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+}
+
+.qr-overlay.visible {
+    opacity: 1;
+}
+
+.qr-overlay-text {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--success-green);
+}
+
+/* Timestamp */
+.timestamp-container {
+    margin-bottom: 20px;
+}
+
+.timestamp-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.timestamp-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Status */
+#status {
+    font-size: 16px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+/* Buttons */
+.button-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 24px;
+    flex-wrap: wrap;
+}
+
+button {
+    padding: 14px 24px;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #1e7bff, #3d8bff);
+    color: white;
+    box-shadow: 0 4px 16px rgba(30, 123, 255, 0.3);
+}
+
+.btn-primary:hover {
+    box-shadow: 0 6px 24px rgba(30, 123, 255, 0.4);
+}
+
+.btn-secondary {
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Connection Status */
+.connection-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 24px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--error-red);
+}
+
+.status-dot.connected {
+    background: var(--success-green);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Loading Spinner */
+.spinner {
+    width: 300px;
+    height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.spinner::after {
+    content: '';
+    width: 56px;
+    height: 56px;
+    border: 4px solid var(--border-color);
+    border-top-color: var(--accent-blue);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* QR Transition Animation */
+@keyframes qrUpdate {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(0.95);
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.qr-updating {
+    animation: qrUpdate 0.5s ease;
+}
+
+/* Fullscreen Button */
+.fullscreen-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.2s;
+    font-size: 18px;
+}
+
+.fullscreen-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* Responsive */
+@media (max-width: 520px) {
+    #card {
+        padding: 28px;
+    }
+
+    #qr {
+        width: 240px;
+        height: 240px;
+    }
+
+    .spinner {
+        width: 240px;
+        height: 240px;
+    }
+
+    h1 {
+        font-size: 26px;
+    }
+
+    .location-name {
+        font-size: 20px;
+    }
+}
+
+/* Large screen - for display monitors */
+@media (min-height: 800px) {
+    #qr {
+        width: 340px;
+        height: 340px;
+    }
+
+    .spinner {
+        width: 340px;
+        height: 340px;
+    }
+
+    .location-name {
+        font-size: 28px;
+    }
+}

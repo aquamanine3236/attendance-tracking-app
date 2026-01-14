@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard</title>
+  <meta name="description" content="Real-time QR scan tracking dashboard">
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <!-- =========================================
+       Company Selection View
+       ========================================= -->
+  <div id="companyView" class="view active">
+    <div class="company-container">
+      <div class="company-header">
+        <h1>Select Company</h1>
+        <p>Choose a company to view its attendance dashboard</p>
+      </div>
+
+      <div id="companyGrid" class="company-grid">
+        <!-- Populated by JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================
+       Dashboard View
+       ========================================= -->
+  <div id="dashboardView" class="view">
+    <header>
+      <div class="header-left">
+        <div class="pill">Admin</div>
+        <h1>Dashboard</h1>
+      </div>
+      <div class="header-right">
+        <div class="company-switcher" id="companySwitcher" title="Switch Company">
+          <span class="company-switcher-name" id="currentCompanyName">Company</span>
+          <span>▼</span>
+        </div>
+        <div class="connection-status">
+          <div class="status-dot" id="statusDot"></div>
+          <span id="connectionText">Connecting...</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <!-- Top Bar: Filters & Actions -->
+      <div class="top-bar">
+        <div class="top-bar-left">
+          <input type="date" id="datePicker" class="date-picker" title="Filter by date">
+          <select id="typeFilter" class="type-filter">
+            <option value="all">All Types</option>
+            <option value="check-in">Check In Only</option>
+            <option value="check-out">Check Out Only</option>
+          </select>
+          <input id="search" class="search-input" placeholder="Search name, title, ID..." />
+        </div>
+        <div class="top-bar-right">
+          <button id="exportBtn" class="secondary">Export</button>
+        </div>
+      </div>
+
+      <!-- QR Control & Stats Row -->
+      <div class="control-row">
+        <!-- QR Control Panel -->
+        <div class="control-card qr-card">
+          <div class="label">QR Control</div>
+          <div class="control-buttons">
+            <button id="newQr">Generate New QR</button>
+          </div>
+          <div id="qrStatus">Send a new QR to the display screen.</div>
+        </div>
+        <div class="stat-stack">
+          <div class="stat-card check-in compact">
+            <div class="stat-label">Check-ins</div>
+            <div class="stat-value" id="checkInCount">0</div>
+          </div>
+          <div class="stat-card check-out compact">
+            <div class="stat-label">Check-outs</div>
+            <div class="stat-value" id="checkOutCount">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scans Table -->
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Name</th>
+              <th>Employee ID</th>
+              <th>Position</th>
+              <th>Location</th>
+              <th>Type</th>
+              <th>Photo</th>
+            </tr>
+          </thead>
+          <tbody id="rows">
+            <tr>
+              <td colspan="7" class="empty-state">
+                <div class="empty-state-icon">📡</div>
+                <div>Waiting for scans...</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <!-- =========================================
+       Export Dialog Modal
+       ========================================= -->
+  <div id="exportDialog" class="modal">
+    <div class="modal-overlay" onclick="closeExportDialog()"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Export Attendance Records</h3>
+        <button class="modal-close" onclick="closeExportDialog()">×</button>
+      </div>
+      <form id="exportForm">
+        <div class="form-group">
+          <label>Date Range</label>
+          <div class="date-range-row">
+            <input type="date" id="exportFromDate" class="date-picker" title="From date">
+            <span>to</span>
+            <input type="date" id="exportToDate" class="date-picker" title="To date">
+          </div>
+        </div>
+        
+        <div class="radio-group">
+          <label>
+            <input type="radio" name="exportType" value="all" checked>
+            Export all records
+          </label>
+          <label>
+            <input type="radio" name="exportType" value="check-in">
+            Export check-in only
+          </label>
+          <label>
+            <input type="radio" name="exportType" value="check-out">
+            Export check-out only
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="secondary" onclick="closeExportDialog()">Cancel</button>
+          <button type="submit">Export</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================
+       Photo Modal
+       ========================================= -->
+  <div id="photoModal" class="modal">
+    <div class="modal-overlay" onclick="closePhotoModal()"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="photoTitle">Photo</h3>
+        <button class="modal-close" onclick="closePhotoModal()">×</button>
+      </div>
+      <img id="photoFull" alt="Scan photo" />
+    </div>
+  </div>
+
+  <!-- Socket.IO Client -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="app.js"></script>
+</body>
+
+</html>

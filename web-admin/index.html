@@ -2,715 +2,162 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard | Demo QR System</title>
-  <meta name="description" content="Real-time QR scan tracking dashboard">
-  <style>
-    /* =========================================
-       Design System - Adapted from Test/web-admin
-       ========================================= */
-    :root {
-      --bg-primary: #0b0f18;
-      --bg-secondary: #0f1626;
-      --bg-card: #111a33;
-      --border-color: #1c2637;
-      --text-primary: #e9f1ff;
-      --text-secondary: #9fb3d9;
-      --accent-blue: #1e7bff;
-      --accent-cyan: #8fc6ff;
-      --pill-bg: #12213d;
-      --success-green: #22c55e;
-      --error-red: #ef4444;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login | Demo QR System</title>
+    <meta name="description" content="Admin login for QR scan tracking">
+    <style>
+        :root {
+            --bg-primary: #0b0f18;
+            --bg-secondary: #0f1626;
+            --bg-card: #111a33;
+            --border-color: #1c2637;
+            --text-primary: #e9f1ff;
+            --text-secondary: #9fb3d9;
+            --accent-blue: #1e7bff;
+            --accent-cyan: #8fc6ff;
+            --pill-bg: #12213d;
+        }
 
-    * {
-      box-sizing: border-box;
-    }
+        * {
+            box-sizing: border-box;
+        }
 
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      min-height: 100vh;
-    }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0b0f18, #0f1626);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
-    /* Header */
-    header {
-      padding: 16px 24px;
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
-      background: linear-gradient(135deg, #0c1530, #0f203c);
-    }
+        .login-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 400px;
+            width: 100%;
+            margin: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
 
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
 
-    .pill {
-      padding: 4px 12px;
-      border-radius: 999px;
-      background: var(--pill-bg);
-      color: var(--accent-cyan);
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
+        .pill {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: var(--pill-bg);
+            color: var(--accent-cyan);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+        }
 
-    h1 {
-      margin: 0;
-      font-size: 24px;
-      font-weight: 600;
-    }
+        h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
 
-    .header-right {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
+        .login-header p {
+            margin: 8px 0 0;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
 
-    /* Form Elements */
-    input,
-    select {
-      padding: 10px 14px;
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
-      background: var(--bg-secondary);
-      color: var(--text-primary);
-      font-size: 14px;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
+        .form-group {
+            margin-bottom: 16px;
+        }
 
-    input:focus,
-    select:focus {
-      outline: none;
-      border-color: var(--accent-blue);
-      box-shadow: 0 0 0 3px rgba(30, 123, 255, 0.2);
-    }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
 
-    input::placeholder {
-      color: var(--text-secondary);
-    }
+        .login-input {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 15px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
 
-    button {
-      padding: 10px 16px;
-      border: none;
-      border-radius: 8px;
-      background: var(--accent-blue);
-      color: white;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.1s, background 0.2s;
-    }
+        .login-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(30, 123, 255, 0.2);
+        }
 
-    button:hover {
-      background: #3d8bff;
-    }
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #1e7bff, #3d8bff);
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+            margin-top: 8px;
+        }
 
-    button:active {
-      transform: scale(0.98);
-    }
+        .login-btn:hover {
+            box-shadow: 0 6px 24px rgba(30, 123, 255, 0.4);
+        }
 
-    button.secondary {
-      background: var(--bg-secondary);
-      color: var(--text-secondary);
-      border: 1px solid var(--border-color);
-    }
-
-    button.secondary:hover {
-      background: var(--bg-card);
-    }
-
-    /* Main Content */
-    main {
-      padding: 20px 24px;
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-
-    /* Control Card */
-    .control-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      padding: 16px 20px;
-      border-radius: 14px;
-      margin-bottom: 20px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-    }
-
-    .control-card .label {
-      color: var(--accent-cyan);
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      font-weight: 600;
-      margin-bottom: 10px;
-    }
-
-    .control-row {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    #qrStatus {
-      color: var(--text-secondary);
-      font-size: 13px;
-      margin-top: 10px;
-      padding: 8px 12px;
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: 6px;
-    }
-
-    /* Stats Bar */
-    .stats-bar {
-      display: flex;
-      gap: 16px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-
-    .stat-item {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      padding: 14px 20px;
-      border-radius: 12px;
-      min-width: 140px;
-    }
-
-    .stat-label {
-      color: var(--text-secondary);
-      font-size: 12px;
-      text-transform: uppercase;
-    }
-
-    .stat-value {
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--accent-cyan);
-      margin-top: 4px;
-    }
-
-    /* Table */
-    .table-container {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: 14px;
-      overflow: hidden;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    th,
-    td {
-      padding: 14px 16px;
-      text-align: left;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    th {
-      color: var(--text-secondary);
-      font-weight: 600;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      background: rgba(0, 0, 0, 0.2);
-    }
-
-    tr:last-child td {
-      border-bottom: none;
-    }
-
-    tr.row {
-      background: var(--bg-secondary);
-      transition: background 0.15s;
-    }
-
-    tr.row:hover {
-      background: rgba(30, 123, 255, 0.1);
-    }
-
-    tr.row.new-scan {
-      animation: highlightRow 2s ease-out;
-    }
-
-    @keyframes highlightRow {
-      0% {
-        background: rgba(34, 197, 94, 0.3);
-      }
-
-      100% {
-        background: var(--bg-secondary);
-      }
-    }
-
-    .empty-state {
-      padding: 60px 20px;
-      text-align: center;
-      color: var(--text-secondary);
-    }
-
-    .empty-state-icon {
-      font-size: 48px;
-      margin-bottom: 16px;
-    }
-
-    /* Photo Modal */
-    #photoModal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.8);
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
-      backdrop-filter: blur(4px);
-    }
-
-    .modal-content {
-      background: var(--bg-primary);
-      padding: 20px;
-      border-radius: 16px;
-      max-width: 90vw;
-      max-height: 90vh;
-      overflow: auto;
-      border: 1px solid var(--border-color);
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    }
-
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-
-    #photoFull {
-      max-width: 100%;
-      max-height: 75vh;
-      border-radius: 12px;
-    }
-
-    /* Connection Status */
-    .connection-status {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      color: var(--text-secondary);
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--error-red);
-    }
-
-    .status-dot.connected {
-      background: var(--success-green);
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-
-      0%,
-      100% {
-        opacity: 1;
-      }
-
-      50% {
-        opacity: 0.5;
-      }
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      header {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .stats-bar {
-        flex-direction: column;
-      }
-
-      .stat-item {
-        width: 100%;
-      }
-
-      th,
-      td {
-        padding: 10px 12px;
-        font-size: 13px;
-      }
-    }
-  </style>
+        .login-btn:active {
+            transform: scale(0.98);
+        }
+    </style>
 </head>
 
 <body>
-  <header>
-    <div class="header-left">
-      <div class="pill">Admin</div>
-      <h1>Live Scans</h1>
-    </div>
-    <div class="header-right">
-      <div class="connection-status">
-        <div class="status-dot" id="statusDot"></div>
-        <span id="connectionText">Connecting...</span>
-      </div>
-      <input id="search" placeholder="Search name, title, ID..." style="min-width: 200px;" />
-      <button id="exportXlsx" class="secondary"> Export Excel</button>
-      <button id="resetDashboard" class="secondary"
-        style="background: #ef4444; color: white; border: none;">Reset</button>
-    </div>
-  </header>
-
-  <main>
-    <!-- Top Row: QR Control + Stats -->
-    <div style="display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;">
-      <!-- QR Control Panel -->
-      <div class="control-card" style="flex: 1; min-width: 300px; margin-bottom: 0;">
-        <div class="label">QR Control</div>
-        <div class="control-row">
-          <button id="newQr">Generate New QR</button>
+    <div class="login-card">
+        <div class="login-header">
+            <div class="pill">Admin Portal</div>
+            <h1>Welcome Back</h1>
+            <p>Sign in to access the admin dashboard</p>
         </div>
-        <div id="qrStatus">Send a new QR to the display screen.</div>
-      </div>
 
-      <!-- Stats -->
-      <div class="stat-item" style="min-width: 140px;">
-        <div class="stat-label">Total Scans</div>
-        <div class="stat-value" id="totalScans">0</div>
-      </div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="loginEmail">Email</label>
+                <input type="text" id="loginEmail" class="login-input" placeholder="admin@company.com">
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" class="login-input" placeholder="••••••••">
+            </div>
+            <button type="submit" class="login-btn">Sign In</button>
+        </form>
     </div>
 
-    <!-- Scans Table -->
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Title</th>
-            <th>Employee ID</th>
-            <th>Type</th>
-            <th>Time</th>
-            <th>Location</th>
-            <th>Photo</th>
-          </tr>
-        </thead>
-        <tbody id="rows">
-          <tr>
-            <td colspan="7" class="empty-state">
-              <div class="empty-state-icon">📡</div>
-              <div>Waiting for scans...</div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </main>
-
-  <!-- Photo Modal -->
-  <div id="photoModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <div class="label" id="photoTitle">Photo</div>
-        <button id="photoClose">Close</button>
-      </div>
-      <img id="photoFull" alt="Scan photo" />
-    </div>
-  </div>
-
-  <!-- Socket.IO Client -->
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-  <script>
-    /**
-     * Admin Dashboard - Adapted from Test/web-admin/index.html
-     * 
-     * Features:
-     * - Real-time scan updates via Socket.IO
-     * - QR generation controls
-     * - Search/filter functionality
-     * - CSV export
-     */
-
-    const params = new URLSearchParams(location.search);
-    const ADMIN_TOKEN = params.get('token') || 'demo-admin-token';
-    const defaultDisplay = params.get('displayId') || 'default-display';
-    let API;
-    let scans = [];
-    let socket = null;
-
-    // ==========================================================================
-    // API Resolution
-    // ==========================================================================
-
-    async function resolveApi() {
-      const explicit = params.get('api');
-      const origin = location.origin && location.origin.startsWith('http') ? location.origin : null;
-      const candidates = [explicit, origin, 'http://localhost:4000', 'http://127.0.0.1:4000']
-        .filter(Boolean)
-        .filter((v, i, arr) => arr.indexOf(v) === i);
-
-      for (const base of candidates) {
-        try {
-          const res = await fetch(`${base}/health`, { mode: 'cors' });
-          if (res.ok) return base;
-        } catch (_err) { }
-      }
-      throw new Error('No reachable API (tried ' + candidates.join(', ') + ')');
-    }
-
-    // ==========================================================================
-    // Rendering
-    // ==========================================================================
-
-    function render(list) {
-      const tbody = document.getElementById('rows');
-
-      if (list.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="7" class="empty-state">
-              <div class="empty-state-icon">📡</div>
-              <div>No scans found</div>
-            </td>
-          </tr>
-        `;
-        return;
-      }
-
-      tbody.innerHTML = '';
-      list.forEach((s, index) => {
-        const tr = document.createElement('tr');
-        tr.className = 'row';
-        if (index === 0 && s._isNew) {
-          tr.classList.add('new-scan');
-          delete s._isNew;
-        }
-
-        const locationStr = s.lat
-          ? `${s.lat.toFixed(5)}, ${s.lng?.toFixed(5) ?? ''}`
-          : '—';
-
-        // Type badge with color
-        const typeBadge = s.type === 'check-in'
-          ? '<span style="background: #22c55e; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">Check In</span>'
-          : s.type === 'check-out'
-            ? '<span style="background: #ef4444; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">Check Out</span>'
-            : '—';
-
-        tr.innerHTML = `
-          <td><strong>${escapeHtml(s.fullName)}</strong></td>
-          <td>${escapeHtml(s.jobTitle)}</td>
-          <td>${escapeHtml(s.employeeId)}</td>
-          <td>${typeBadge}</td>
-          <td>${new Date(s.createdAt).toLocaleTimeString()}</td>
-          <td>${locationStr}</td>
-          <td>${s.imageData ? `<button class="photo-btn secondary" data-id="${s.id}">View</button>` : '—'}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-      // Attach photo button handlers
-      document.querySelectorAll('.photo-btn').forEach(btn => {
-        btn.onclick = () => {
-          const id = btn.getAttribute('data-id');
-          const scan = scans.find(x => x.id === id);
-          if (scan?.imageData) showPhoto(scan);
-        };
-      });
-
-      updateStats();
-    }
-
-    function escapeHtml(str) {
-      const div = document.createElement('div');
-      div.textContent = str || '';
-      return div.innerHTML;
-    }
-
-    function updateStats() {
-      document.getElementById('totalScans').textContent = scans.length;
-    }
-
-    function updateConnectionStatus(connected) {
-      const dot = document.getElementById('statusDot');
-      const text = document.getElementById('connectionText');
-
-      if (connected) {
-        dot.classList.add('connected');
-        text.textContent = 'Connected';
-      } else {
-        dot.classList.remove('connected');
-        text.textContent = 'Disconnected';
-      }
-    }
-
-    // ==========================================================================
-    // Data Loading
-    // ==========================================================================
-
-    async function loadInitial() {
-      try {
-        const res = await fetch(`${API}/admin/scans`, {
-          headers: { Authorization: `Bearer ${ADMIN_TOKEN}` }
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            // Mock login - accept any credentials
+            sessionStorage.setItem('adminLoggedIn', 'true');
+            // Redirect to dashboard
+            window.location.href = 'dashboard.html';
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        scans = data.data || [];
-        render(scans);
-      } catch (err) {
-        document.getElementById('qrStatus').textContent = `Load failed: ${err.message}`;
-      }
-    }
-
-    // ==========================================================================
-    // Event Handlers
-    // ==========================================================================
-
-    // Search
-    document.getElementById('search').addEventListener('input', (e) => {
-      const term = e.target.value.toLowerCase();
-      const filtered = scans.filter(s =>
-        s.fullName.toLowerCase().includes(term) ||
-        s.jobTitle.toLowerCase().includes(term) ||
-        s.employeeId.toLowerCase().includes(term)
-      );
-      render(filtered);
-    });
-
-    // Export XLSX
-    document.getElementById('exportXlsx').addEventListener('click', () => {
-      window.open(`${API}/admin/export.xlsx?token=${ADMIN_TOKEN}`, '_blank');
-    });
-
-    // Reset Dashboard
-    document.getElementById('resetDashboard').addEventListener('click', async () => {
-      if (!confirm('Are you sure you want to clear all scan data? This cannot be undone.')) {
-        return;
-      }
-
-      try {
-        const res = await fetch(`${API}/admin/reset`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${ADMIN_TOKEN}`,
-          },
-        });
-        if (!res.ok) throw new Error('Failed to reset');
-        scans = [];
-        render(scans);
-        updateStats();
-        document.getElementById('qrStatus').textContent = '✅ Dashboard reset successfully!';
-      } catch (err) {
-        document.getElementById('qrStatus').textContent = `❌ Reset failed: ${err.message}`;
-      }
-    });
-
-    // Generate New QR
-    document.getElementById('newQr').addEventListener('click', async () => {
-      const displayId = 'default-display';
-      document.getElementById('qrStatus').textContent = '⏳ Requesting new QR...';
-
-      try {
-        const res = await fetch(`${API}/admin/qr`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${ADMIN_TOKEN}`,
-          },
-          body: JSON.stringify({ displayId }),
-        });
-        if (!res.ok) throw new Error('Failed to generate QR');
-        const data = await res.json();
-        document.getElementById('qrStatus').textContent =
-          `✅ New QR generated! Expires at ${new Date(data.expiresAt).toLocaleTimeString()}`;
-      } catch (err) {
-        document.getElementById('qrStatus').textContent = `❌ ${err.message}`;
-      }
-    });
-
-    // Photo Modal
-    function showPhoto(scan) {
-      document.getElementById('photoFull').src = scan.imageData;
-      document.getElementById('photoTitle').textContent = `Photo — ${scan.fullName} (${scan.employeeId})`;
-      document.getElementById('photoModal').style.display = 'flex';
-    }
-
-    document.getElementById('photoClose').onclick = () => {
-      document.getElementById('photoModal').style.display = 'none';
-    };
-
-    document.getElementById('photoModal').addEventListener('click', (e) => {
-      if (e.target === document.getElementById('photoModal')) {
-        document.getElementById('photoModal').style.display = 'none';
-      }
-    });
-
-    // ==========================================================================
-    // Initialization
-    // ==========================================================================
-
-    (async () => {
-      try {
-        API = await resolveApi();
-        document.getElementById('qrStatus').textContent = `✅ Connected to API: ${API}`;
-
-        // Initialize Socket.IO
-        socket = io(API, {
-          query: { role: 'admin', token: ADMIN_TOKEN },
-          transports: ['websocket'],
-          reconnectionAttempts: 10,
-        });
-
-        socket.on('connect', () => {
-          updateConnectionStatus(true);
-        });
-
-        socket.on('disconnect', () => {
-          updateConnectionStatus(false);
-        });
-
-        socket.on('ready', loadInitial);
-
-        socket.on('scan:logged', (scan) => {
-          scan._isNew = true;
-          scans = [scan, ...scans];
-          render(scans);
-          // Play notification sound or visual feedback
-          document.getElementById('qrStatus').textContent =
-            `🔔 New scan: ${scan.fullName} at ${new Date(scan.createdAt).toLocaleTimeString()}`;
-        });
-
-        socket.on('connect_error', (err) => {
-          updateConnectionStatus(false);
-          document.getElementById('qrStatus').textContent = `Socket error: ${err.message}`;
-        });
-
-        await loadInitial();
-
-      } catch (err) {
-        document.getElementById('qrStatus').textContent = err.message;
-        updateConnectionStatus(false);
-      }
-    })();
-  </script>
+    </script>
 </body>
 
 </html>
