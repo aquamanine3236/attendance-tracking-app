@@ -1,0 +1,6 @@
+# Server secrets
+server/.env
+server/firebase-service-account.json
+
+# Node modules (server)
+server/node_modules

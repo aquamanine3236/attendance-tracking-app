@@ -20,6 +20,7 @@ import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import http from 'http';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { nanoid } from 'nanoid';
 import path from 'path';
@@ -128,6 +129,26 @@ const requireAnyRole = (roles) => (req, res, next) => {
   return res.status(401).json({ error: 'unauthorized' });
 };
 
+/**
+ * Verify a stored password hash against a plaintext candidate.
+ * Supports bcrypt hashes and falls back to plaintext (legacy/demo data).
+ */
+async function verifyPassword(storedHash, candidate) {
+  if (!storedHash || !candidate) return false;
+
+  const isBcrypt = storedHash.startsWith('$2a$') || storedHash.startsWith('$2b$') || storedHash.startsWith('$2y$');
+  if (isBcrypt) {
+    try {
+      return await bcrypt.compare(candidate, storedHash);
+    } catch (_err) {
+      return false;
+    }
+  }
+
+  // Legacy/plaintext fallback
+  return storedHash === candidate;
+}
+
 // =============================================================================
 // API Routes
 // =============================================================================
@@ -163,8 +184,9 @@ app.post('/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Check password (using plaintext for demo - use bcrypt in production)
-    if (user.password_hash !== password) {
+    // Check password (supports bcrypt hashes and legacy plaintext)
+    const validPassword = await verifyPassword(user.password_hash, password);
+    if (!validPassword) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -222,8 +244,9 @@ app.post('/auth/admin/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Check password (using plaintext for demo - use bcrypt in production)
-    if (user.password_hash !== password) {
+    // Check password (supports bcrypt hashes and legacy plaintext)
+    const validPassword = await verifyPassword(user.password_hash, password);
+    if (!validPassword) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 

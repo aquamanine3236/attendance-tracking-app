@@ -1,330 +1,90 @@
-# Demo QR Scanning & Tracking System
+# Attendance Tracking App
 
-A complete real-time QR scanning and attendance tracking system with three modules: **Admin Dashboard**, **QR Display**, and **Mobile Scanner**.
+End-to-end QR attendance logging with a Node/Express backend backed by Firebase Firestore, a web display and admin dashboard, and a Flutter mobile scanner. Real-time updates flow over Socket.IO so new scans appear instantly on the dashboard and the display refreshes to the next QR after each scan.
 
-## 📋 Table of Contents
+## What's in the repo
+- `server/`: Express + Socket.IO API that issues QR tokens, validates scans, and stores data in Firestore.
+- `web-display/`: Browser client that shows the active QR for a selected company and reacts to real-time updates.
+- `web-admin/`: Browser dashboard for admins to log in, choose a company, issue new QR codes, watch scans live, filter, and export to CSV/XLSX.
+- `scanner_app/`: Flutter app for employees to log in, capture GPS, scan QR codes (camera or image upload), and submit check-in/out records.
+- `firebase-service-account-example.json`: Redacted example; replace with a real service account JSON in `server/`.
 
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Folder Structure](#folder-structure)
-- [Prerequisites](#prerequisites)
-- [Installation & Setup](#installation--setup)
-- [Running the System](#running-the-system)
-- [Demo Flow](#demo-flow)
-- [API Reference](#api-reference)
-- [Reused Code](#reused-code)
-
----
-
-## Overview
-
-This system enables real-time attendance tracking through QR code scanning:
-
-1. **Admin** generates secure, time-limited QR codes
-2. **Display** shows the current active QR code on a screen
-3. **Scanner** (mobile app) scans the QR and submits user information
-4. **Admin** sees the scan appear in real-time
-
-### Key Features
-
-- ⚡ **Real-time updates** via WebSocket (Socket.IO)
-- 🔐 **Secure QR tokens** with JWT signing and TTL
-- 📍 **GPS location capture** from mobile devices
-- 🔄 **Auto-regeneration** of QR after each successful scan
-- 📊 **CSV export** of scan records
-- 🌙 **Dark theme** across all interfaces
-
----
-
-## Architecture
-
-```
-┌─────────────────┐    WebSocket     ┌─────────────────┐
-│  Admin Dashboard │◄──────────────►│                 │
-│   (Web Browser)  │                 │                 │
-└─────────────────┘                  │     Server      │
-                                     │  (Node.js +     │
-┌─────────────────┐    WebSocket     │   Socket.IO)    │
-│   QR Display     │◄──────────────►│                 │
-│  (Web Browser)   │                 │                 │
-└─────────────────┘                  │                 │
-                                     └────────┬────────┘
-┌─────────────────┐    HTTP/REST              │
-│  Mobile Scanner  │◄────────────────────────┘
-│   (Flutter App)  │
-└─────────────────┘
-```
-
----
-
-## Folder Structure
-
-```
-Demo/
-├── server/                    # Node.js backend server
-│   ├── src/
-│   │   └── server.js          # Main server with Express + Socket.IO
-│   ├── package.json           # Dependencies
-│   ├── .env                   # Environment configuration
-│   └── .env.example           # Config template
-│
-├── web-admin/                 # Admin dashboard (web)
-│   └── index.html             # Admin interface
-│
-├── web-display/               # QR display screen (web)
-│   └── index.html             # Display interface
-│
-├── scanner_app/               # Flutter mobile scanner
-│   ├── lib/
-│   │   ├── main.dart          # App entry point
-│   │   ├── models/
-│   │   │   └── scan_data.dart # Data models
-│   │   ├── screens/
-│   │   │   ├── home_screen.dart
-│   │   │   ├── scanner_screen.dart
-│   │   │   ├── user_form_screen.dart
-│   │   │   └── result_screen.dart
-│   │   └── services/
-│   │       ├── api_service.dart
-│   │       └── location_service.dart
-│   ├── android/               # Android configuration
-│   └── pubspec.yaml           # Flutter dependencies
-│
-└── README.md                  # This file
-```
-
----
+## How it works (high level)
+1) Admin signs in via `/auth/admin/login`, picks a company in the dashboard, and hits **Generate New QR**.  
+2) The display client subscribes with role `display` and shows the QR for `display-{companyId}`; it swaps to the latest QR on `qr:new` and shows scan feedback on `qr:consumed`.  
+3) An employee logs in through the Flutter app (`/auth/login`), chooses **Check In** or **Check Out**, scans the QR, and the app posts `/scan` with location and type after validating the token.  
+4) The server writes sessions and scans to Firestore, emits `scan:logged` to admins, and immediately issues the next QR for that display.
 
 ## Prerequisites
-
-### Server
-- **Node.js** v18+ ([Download](https://nodejs.org))
-- **npm** (comes with Node.js)
-
-### Mobile Scanner
-- **Flutter SDK** v3.0+ ([Install Flutter](https://flutter.dev/docs/get-started/install))
-- **Android Studio** or **VS Code** with Flutter extensions
-- **Android device/emulator** or **iOS device/simulator**
-
-### Web Modules
-- Any modern web browser (Chrome, Firefox, Edge, Safari)
-
----
-
-## Installation & Setup
-
-### 1. Server Setup
-
-```bash
-# Navigate to server directory
-cd Demo/server
-
-# Install dependencies
-npm install
-
-# Copy environment file (optional, defaults work for demo)
-copy .env.example .env
-```
-
-### 2. Flutter Scanner Setup
-
-```bash
-# Navigate to scanner app
-cd Demo/scanner_app
-
-# Get Flutter dependencies
-flutter pub get
-
-# For Android: Ensure you have an emulator running or device connected
-flutter devices
-```
-
----
-
-## Running the System
-
-### Step 1: Start the Server
-
-```bash
-cd Demo/server
-npm start
-```
-
-You should see:
-```
-╔═══════════════════════════════════════════════════════════════╗
-║         Demo QR Scanning & Tracking Server                    ║
-║  Server listening on port 4000                                ║
-╚═══════════════════════════════════════════════════════════════╝
-```
-
-### Step 2: Open Admin and Display pages
-
-Open another Terminal
-
-```bash
-npx -y serve .
-```
-
-Then open web-admin and web-display
-
-### Step 3: Run Mobile Scanner
-
-```bash
-cd Demo/scanner_app
-
-# Run on connected device or emulator
-flutter run
-```
-
-**For Android Emulator**: The app uses `10.0.2.2:4000` to connect to localhost.
-
-**For Physical Device**: Either:
-- Run server on a LAN-accessible IP
-- Use the "Server URL" field in the app to specify the server address
-
----
-
-## Demo Flow
-
-### Complete Workflow
-
-1. **Start Server** → Backend ready on port 4000
-2. **Open Admin** → Dashboard connects and shows "Connected"
-3. **Open Display** → QR code appears automatically
-4. **Run Scanner App** → Verify "Connected" status
-5. **Click "Start Scanning"** → Camera opens
-6. **Scan the QR code** on Display screen
-7. **Fill in user information**:
-   - Full Name
-   - Job Title
-   - Employee ID
-   - (Location captured automatically)
-8. **Submit** → Success message shown
-9. **Check Admin** → New scan appears in real-time
-10. **Check Display** → New QR generated automatically
-
-### Testing Manually
-
-You can test the Admin → Display flow without the mobile app:
-
-1. Open Admin and Display in separate browser tabs
-2. Click **"Generate New QR"** in Admin
-3. Watch Display update with new QR
-4. Use the web scanner at `Demo/Test/web-scanner/index.html` for testing
-
----
-
-## API Reference
-
-| Endpoint | Method | Auth | Description |
-|----------|--------|------|-------------|
-| `/health` | GET | - | Health check |
-| `/admin/qr` | POST | Admin | Generate new QR |
-| `/display/qr/current` | GET | Display | Get current QR |
-| `/scan` | POST | User | Submit scan |
-| `/admin/scans` | GET | Admin | List all scans |
-| `/admin/export.csv` | GET | Admin | Export CSV |
-
-### WebSocket Events
-
-| Event | Direction | Description |
-|-------|-----------|-------------|
-| `qr:new` | Server → Display | New QR generated |
-| `qr:consumed` | Server → Display | QR was scanned |
-| `scan:logged` | Server → Admin | New scan recorded |
-| `ready` | Server → Client | Connection established |
-
-### Demo Tokens
-
-| Role | Token |
-|------|-------|
-| Admin | `demo-admin-token` |
-| Display | `demo-display-token` |
-| User | `demo-user-token` |
-
----
-
-## Reused Code
-
-This demo system was built by adapting and reusing code from existing folders:
-
-### From `qr_code_scanner/`
-
-| Source | Used In | What Was Adapted |
-|--------|---------|------------------|
-| `example/lib/main.dart` | `scanner_screen.dart` | QR scanning UI patterns, camera controls layout |
-| `lib/src/qr_code_scanner.dart` | `scanner_screen.dart` | Overlay design, permission handling patterns |
-| `lib/src/qr_scanner_overlay_shape.dart` | `ScanOverlayPainter` | Corner indicator drawing logic |
-
-### From `Test/`
-
-| Source | Used In | What Was Adapted |
-|--------|---------|------------------|
-| `server/src/server.js` | `Demo/server/src/server.js` | Full server architecture, QR generation, Socket.IO setup |
-| `web-admin/index.html` | `Demo/web-admin/index.html` | Admin UI, real-time table, styling |
-| `web-display/index.html` | `Demo/web-display/index.html` | Display UI, auto-update logic |
-| `web-scanner/index.html` | API patterns in Flutter | API communication patterns |
-
-### Key Adaptations
-
-1. **Flutter Scanner**: Used `mobile_scanner` package instead of `qr_code_scanner` plugin for better modern Flutter support, but adapted UI patterns from the example.
-
-2. **Server**: Kept the same architecture with minor enhancements for better logging and documentation.
-
-3. **Web Interfaces**: Enhanced styling with gradients, animations, and improved UX (download button, fullscreen mode).
-
----
-
-## Configuration
-
-### Server Environment Variables
-
-Edit `Demo/server/.env`:
-
-```env
-PORT=4000                  # Server port
-QR_SECRET=your-secret      # JWT signing secret
-QR_TTL_SECONDS=60          # QR expiration time
-ADMIN_JWT=admin-token      # Admin auth token
-DISPLAY_JWT=display-token  # Display auth token
-USER_JWT=user-token        # User auth token
-```
-
-### Mobile App Server Connection
-
-The app tries these URLs in order:
-1. Custom URL (if specified in the app)
-2. `http://10.0.2.2:4000` (Android emulator)
-3. `http://localhost:4000`
-4. `http://127.0.0.1:4000`
-
----
-
-## Troubleshooting
-
-### Server won't start
-- Ensure Node.js v18+ is installed
-- Run `npm install` in the server directory
-- Check if port 4000 is available
-
-### Web modules show "No reachable API"
-- Ensure server is running
-- Check browser console for CORS errors
-- Try opening with `?api=http://localhost:4000`
-
-### Flutter app can't connect
-- For emulator: Server must be running on `localhost:4000`
-- For physical device: Use LAN IP address in server URL field
-- Check that `android:usesCleartextTraffic="true"` is in manifest
-
-### Camera not working on mobile
-- Grant camera permission when prompted
-- On Android, ensure Camera permission in App Settings
-- Try restarting the app
-
----
-
-## License
-
-This is a demo project for educational purposes.
+- Node.js 18+
+- Firebase project with Firestore plus a service account JSON
+- Flutter 3.10+ with Android/iOS tooling (for `scanner_app`)
+- Modern browser for the web apps
+
+## Setup and running
+### 1) Backend (`server/`)
+1. Copy env template: `cp server/.env.example server/.env` and set values:
+   - `FIREBASE_SERVICE_ACCOUNT` path to your real service account JSON (place it as `server/firebase-service-account.json` or point elsewhere).
+   - `QR_SECRET`, `QR_TTL_SECONDS`, and `ADMIN_JWT`/`DISPLAY_JWT`/`USER_JWT` demo tokens used by the clients.
+   - `ALLOW_MULTI_SCAN=true` if you want to allow reusing the same QR in tests.
+2. Install deps: `cd server && npm install`.
+3. Seed optional sample data: edit `server/scripts/import-data.js` with your companies/users (passwords are plain text) and run `node scripts/import-data.js`.
+4. Start the API: `npm run dev` (reload) or `npm start`. The server also serves the web clients at `/admin` and `/display`.
+
+### 2) Web clients
+- **Admin dashboard**: open `http://localhost:4000/admin/`, log in with a Firestore user where `role === "admin"`, pick a company, watch scans live, generate QR, and export via CSV/XLSX. Filters include date, type, and search.
+- **QR display**: open `http://localhost:4000/display/`, pick a company, and keep it on-screen. It auto-refreshes on `qr:new` and shows 'scanned' feedback. Buttons: refresh QR and download PNG.  
+  URL params override defaults: `?companyId=...&company=Name&token=<display-token>&api=http://host:4000`.
+
+### 3) Mobile scanner (`scanner_app/`)
+1. `cd scanner_app && flutter pub get`
+2. Ensure the app can reach your API:
+   - Defaults in `lib/services/api_service.dart` try `https://testchamcong.merlinle.com`, then `10.0.2.2:4000`, `localhost:4000`, `127.0.0.1:4000`.
+   - For devices on your LAN, set the first entry to your host IP (for example `http://192.168.x.x:4000`).
+3. Run on a device/emulator: `flutter run`.
+4. Log in with an employee account (`role === "employee"`), grant location permission, pick **Check In** or **Check Out**, and scan the on-screen QR. If the camera cannot scan, the app can decode a QR from an uploaded image.
+
+## Configuration reference (`server/.env`)
+- `PORT`: HTTP port (default 4000)  
+- `FIREBASE_SERVICE_ACCOUNT`: Path to service account JSON  
+- `QR_SECRET`: JWT signing secret for QR tokens  
+- `QR_TTL_SECONDS`: Token lifetime in seconds  
+- `ADMIN_JWT` / `DISPLAY_JWT` / `USER_JWT`: Demo bearer tokens used by dashboard, display, and scanner  
+- `WEB_ORIGIN`: CORS origins (`*` in demo)  
+- `ALLOW_MULTI_SCAN`: Allow reusing the same QR without conflict (testing)
+
+## API surface (Express + Socket.IO)
+**HTTP**
+- `GET /health` - basic health plus Firestore check  
+- `POST /auth/login` - employee login (plain-text password check; returns user info and `USER_JWT`)  
+- `POST /auth/admin/login` - admin login (plain-text password check; returns admin info and `ADMIN_JWT`)  
+- `GET /qr/image?text=` - utility to render a QR PNG  
+- `GET /api/companies` - list companies (admin/display token)  
+- `GET /admin/companies` - same payload, admin-only  
+- `POST /admin/qr` - issue a new QR for a display `{ displayId, companyId? }` (admin)  
+- `GET /display/qr/current` - fetch current QR for a display/company (display/admin)  
+- `GET /qr/validate` - user token required; checks JWT signature and status  
+- `POST /scan` - submit scan with `{ token, fullName, jobTitle, employeeId, type, lat, lng, accuracy, imageData? }` (user)  
+- `GET /admin/scans` - list scans, optional `companyId`/`search` (admin)  
+- `GET /admin/export.csv` and `GET /admin/export.xlsx` - export scans (admin)  
+- `POST /admin/reset` - clear scans and active QR sessions; clears display cache (admin)
+
+**WebSocket (Socket.IO query: `role`, `token`, `displayId` optional)**
+- `ready` (server -> client) - connection acknowledged  
+- `qr:new` (server -> display room) - new QR payload  
+- `qr:consumed` (server -> display room) - QR was scanned with timestamp  
+- `scan:logged` (server -> admin) - new scan data broadcast
+
+## Data and storage
+- Firestore collections: `companies`, `users`, `displays`, `qr_sessions`, `scans`. Sessions are marked used when a new QR is issued for the same display; scans store GPS, type, and optional photo data URL.
+- Passwords in Firestore are stored as plain text for demo purposes. Replace with hashed storage and real auth for production.
+- QR tokens embed `exp` and are signed with `QR_SECRET`; TTL is enforced by JWT verification.
+
+## Scripts
+- `server/scripts/import-data.js`: seed Firestore with example companies/users/displays (edit before running).  
+- `server/scripts/test-firestore.js`: quick connectivity test that writes/cleans up test docs.
+
+## Notes and caveats
+- Demo bearer tokens and plain-text logins are for local testing only; integrate proper auth before production use.
+- The web apps and scanner try to auto-detect the API base URL but allow overriding via query params (`api`) or by changing `_defaultEndpoints` in the Flutter service.
+- Sensitive credentials are intentionally omitted; provide your own service account JSON and secrets.

@@ -5,6 +5,7 @@
  */
 
 import admin from 'firebase-admin';
+import bcrypt from 'bcryptjs';
 import { readFileSync } from 'fs';
 
 // =============================================================================
@@ -244,9 +245,15 @@ async function importUsers() {
 
     for (const user of users) {
         const { id, ...data } = user;
+        const passwordHash = data.password_hash
+            ? (data.password_hash.startsWith('$2a$') || data.password_hash.startsWith('$2b$') || data.password_hash.startsWith('$2y$')
+                ? data.password_hash
+                : await bcrypt.hash(data.password_hash, 10))
+            : null;
         const ref = db.collection('users').doc(id); // Use explicit ID
         batch.set(ref, {
             ...data,
+            password_hash: passwordHash,
         });
     }
 
