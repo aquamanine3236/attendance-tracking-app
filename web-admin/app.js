@@ -42,25 +42,37 @@ const CompanyContext = {
 };
 
 // ==========================================================================
-// Mock Data
+// Companies (loaded from API)
 // ==========================================================================
 
-const MOCK_COMPANIES = [
-    { id: 'company-1', name: 'ABC Corporation', employeeCount: 150, logo: 'A', location: 'HCM Office' },
-    { id: 'company-2', name: 'XYZ Tech', employeeCount: 85, logo: 'X', location: 'Hanoi Office' },
-    { id: 'company-3', name: 'Global Solutions', employeeCount: 200, logo: 'G', location: 'Da Nang Office' },
-];
+let companies = [];
 
 // ==========================================================================
 // State
 // ==========================================================================
 
+// Authentication Guard - redirect to login if not authenticated
+if (!sessionStorage.getItem('adminLoggedIn') && window.location.pathname.includes('dashboard')) {
+    window.location.href = 'index.html';
+}
+
 const params = new URLSearchParams(location.search);
-const ADMIN_TOKEN = params.get('token') || 'demo-admin-token';
+// Use stored token from login, fallback to query param or demo token
+const ADMIN_TOKEN = sessionStorage.getItem('adminToken') || params.get('token') || 'demo-admin-token';
 let API;
 let scans = [];
 let filteredScans = [];
 let socket = null;
+
+// Logout function
+function logout() {
+    sessionStorage.removeItem('adminLoggedIn');
+    sessionStorage.removeItem('adminToken');
+    sessionStorage.removeItem('adminUser');
+    sessionStorage.removeItem('selectedCompanyId');
+    sessionStorage.removeItem('selectedCompanyName');
+    window.location.href = 'index.html';
+}
 
 function formatTime(dateLike) {
     return new Date(dateLike).toLocaleTimeString([], {
@@ -84,22 +96,53 @@ function showView(viewId) {
 // Company Selection
 // ==========================================================================
 
-function renderCompanyGrid() {
-    console.log('renderCompanyGrid called, MOCK_COMPANIES:', MOCK_COMPANIES);
+async function loadCompanies() {
     const grid = document.getElementById('companyGrid');
-    console.log('grid element:', grid);
+    if (!grid) return;
+
+    // Show loading state
+    grid.innerHTML = '<div class="loading-state">Loading companies...</div>';
+
+    try {
+        // Need to resolve API first
+        if (!API) {
+            API = await resolveApi();
+        }
+
+        const res = await fetch(`${API}/admin/companies`, {
+            headers: { Authorization: `Bearer ${ADMIN_TOKEN}` }
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+        companies = data.data || [];
+        renderCompanyGrid();
+    } catch (err) {
+        console.error('Failed to load companies:', err);
+        grid.innerHTML = '<div class="empty-state">Failed to load companies. Please refresh.</div>';
+    }
+}
+
+function renderCompanyGrid() {
+    const grid = document.getElementById('companyGrid');
     if (!grid) {
         console.error('companyGrid element not found!');
         return;
     }
-    grid.innerHTML = MOCK_COMPANIES.map(company => `
+
+    if (companies.length === 0) {
+        grid.innerHTML = '<div class="empty-state">No companies found.</div>';
+        return;
+    }
+
+    grid.innerHTML = companies.map(company => `
     <div class="company-card" onclick="selectCompany('${company.id}', '${company.name}')">
-      <div class="company-logo">${company.logo}</div>
+      <div class="company-logo">${company.logo || company.name?.charAt(0) || '?'}</div>
       <div class="company-name">${company.name}</div>
-      <div class="company-info">${company.employeeCount} employees</div>
+      <div class="company-info">${company.employeeCount || 0} employees</div>
     </div>
   `).join('');
-    console.log('Grid innerHTML set, length:', grid.innerHTML.length);
 }
 
 function selectCompany(id, name) {
@@ -114,6 +157,7 @@ const companySwitcherEl = document.getElementById('companySwitcher');
 if (companySwitcherEl) {
     companySwitcherEl.addEventListener('click', () => {
         showView('companyView');
+        loadCompanies(); // Refresh companies when switching
     });
 }
 
@@ -464,5 +508,5 @@ if (addLocationBtnEl) addLocationBtnEl.style.display = 'none';
 // Initialization
 // ==========================================================================
 
-// Render company selection on page load
-renderCompanyGrid();
+// Load companies from API on page load
+loadCompanies();

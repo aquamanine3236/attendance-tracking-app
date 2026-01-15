@@ -163,13 +163,78 @@
     </div>
 
     <script>
-        document.getElementById('loginForm').addEventListener('submit', (e) => {
+        // API Resolution
+        async function resolveApi() {
+            const candidates = [
+                window.location.origin,
+                'http://localhost:4000',
+                'http://127.0.0.1:4000'
+            ].filter(Boolean);
+
+            for (const base of candidates) {
+                try {
+                    const res = await fetch(`${base}/health`, { mode: 'cors' });
+                    if (res.ok) return base;
+                } catch (_err) { }
+            }
+            return 'http://localhost:4000'; // fallback
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            // Mock login - accept any credentials
-            sessionStorage.setItem('adminLoggedIn', 'true');
-            // Redirect to dashboard
-            window.location.href = 'dashboard.html';
+
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const errorEl = document.getElementById('loginError');
+
+            // Clear previous error
+            if (errorEl) errorEl.style.display = 'none';
+
+            // Disable button during login
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Signing In...';
+
+            try {
+                const API = await resolveApi();
+                const res = await fetch(`${API}/auth/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: email, password }),
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    // Store auth data
+                    sessionStorage.setItem('adminLoggedIn', 'true');
+                    sessionStorage.setItem('adminToken', data.token);
+                    sessionStorage.setItem('adminUser', JSON.stringify(data.user));
+                    // Redirect to dashboard
+                    window.location.href = 'dashboard.html';
+                } else {
+                    // Show error
+                    showError(data.error || 'Login failed');
+                }
+            } catch (err) {
+                showError('Unable to connect to server. Please try again.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Sign In';
+            }
         });
+
+        function showError(message) {
+            let errorEl = document.getElementById('loginError');
+            if (!errorEl) {
+                errorEl = document.createElement('div');
+                errorEl.id = 'loginError';
+                errorEl.style.cssText = 'background: rgba(255,77,77,0.15); border: 1px solid rgba(255,77,77,0.3); color: #ff6b6b; padding: 12px; border-radius: 8px; margin-top: 16px; font-size: 14px;';
+                document.getElementById('loginForm').appendChild(errorEl);
+            }
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+        }
     </script>
 </body>
 

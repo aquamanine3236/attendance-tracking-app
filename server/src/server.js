@@ -7,7 +7,7 @@
  * - Express + Socket.IO for real-time communication
  * - JWT-signed QR tokens with TTL
  * - Role-based authentication (admin, display, user)
- * - In-memory storage (replace with Redis/PostgreSQL for production)
+ * - PostgreSQL database for persistent storage
  * 
  * Events:
  * - qr:new - New QR code generated (sent to display)
@@ -29,6 +29,7 @@ import { Server } from 'socket.io';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import * as XLSX from 'xlsx';
+import db from './db.js';
 
 // ES Module __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
@@ -50,25 +51,12 @@ const TOKEN_MAP = {
   user: process.env.USER_JWT || 'demo-user-token',
 };
 
-// Company name mapping (for scanner response)
-const COMPANY_NAMES = {
-  'company-1': 'ABC Corporation',
-  'company-2': 'XYZ Tech',
-  'company-3': 'Global Solutions',
-};
-
 // =============================================================================
-// In-Memory Storage (replace with database in production)
+// In-Memory Cache for QR Display (for real-time updates)
 // =============================================================================
 
-/** @type {Map<string, object>} token -> session */
-const qrSessions = new Map();
-
-/** @type {Map<string, object>} displayId -> latest QR payload */
+/** @type {Map<string, object>} displayId -> latest QR payload (cached for quick access) */
 const latestQrByDisplay = new Map();
-
-/** @type {Array<object>} All recorded scans */
-const scans = [];
 
 // =============================================================================
 // Express + Socket.IO Setup
@@ -145,7 +133,129 @@ const requireAnyRole = (roles) => (req, res, next) => {
 // =============================================================================
 
 // Health check endpoint
-app.get('/health', (_req, res) => res.json({ ok: true }));
+app.get('/health', async (_req, res) => {
+  const dbHealth = await db.healthCheck();
+  res.json({ ok: true, database: dbHealth });
+});
+
+// =============================================================================
+// Authentication Endpoints
+// =============================================================================
+
+/**
+ * Employee Login
+ * POST /auth/login
+ * Body: { username, password }
+ * Returns employee data on success
+ */
+app.post('/auth/login', async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password are required' });
+  }
+
+  try {
+    // Find user by username
+    const user = await db.users.findByUsername(username);
+
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Check password (using plaintext for demo - use bcrypt in production)
+    if (user.password_hash !== password) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Check role - only employees can login via scanner
+    if (user.role !== 'employee') {
+      return res.status(403).json({ error: 'Access denied. Employee account required.' });
+    }
+
+    // Get company info
+    const company = user.company_id ? await db.companies.findById(user.company_id) : null;
+
+    // Update last login
+    await db.users.updateLastLogin(user.id);
+
+    // Return user data
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        fullName: user.full_name,
+        employeeId: user.employee_id,
+        jobTitle: user.job_title || '',
+        avatar: user.avatar || null,
+        company: company ? {
+          id: company.id,
+          name: company.name,
+        } : null,
+      },
+      token: TOKEN_MAP.user, // Use the demo token for now
+    });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Login failed. Please try again.' });
+  }
+});
+
+/**
+ * Admin Login
+ * POST /auth/admin/login
+ * Body: { username, password }
+ * Returns admin data and token on success
+ */
+app.post('/auth/admin/login', async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password are required' });
+  }
+
+  try {
+    // Find user by username
+    const user = await db.users.findByUsername(username);
+
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Check password (using plaintext for demo - use bcrypt in production)
+    if (user.password_hash !== password) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Check role - only admins can login to admin dashboard
+    if (user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied. Admin account required.' });
+    }
+
+    // Get company info
+    const company = user.company_id ? await db.companies.findById(user.company_id) : null;
+
+    // Update last login
+    await db.users.updateLastLogin(user.id);
+
+    // Return admin data
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        fullName: user.full_name,
+        company: company ? {
+          id: company.id,
+          name: company.name,
+        } : null,
+      },
+      token: TOKEN_MAP.admin,
+    });
+  } catch (err) {
+    console.error('Admin login error:', err);
+    res.status(500).json({ error: 'Login failed. Please try again.' });
+  }
+});
 
 /**
  * Generate a QR image for arbitrary text (utility endpoint)
@@ -166,6 +276,51 @@ app.get('/qr/image', async (req, res) => {
 });
 
 /**
+ * Get all companies
+ * GET /api/companies
+ * Accessible by admin and display roles
+ */
+app.get('/api/companies', requireAnyRole(['admin', 'display']), async (req, res) => {
+  try {
+    const companies = await db.companies.findAll();
+    res.json({
+      data: companies.map(c => ({
+        id: c.id,
+        name: c.name,
+        employeeCount: c.employee_count || 0,
+        logo: c.logo || c.name?.charAt(0)?.toUpperCase() || '?',
+        location: c.location_label || '',
+      })),
+    });
+  } catch (err) {
+    console.error('Error fetching companies:', err);
+    res.status(500).json({ error: 'Failed to fetch companies' });
+  }
+});
+
+/**
+ * Admin: Get all companies (legacy endpoint)
+ * GET /admin/companies
+ */
+app.get('/admin/companies', requireRole('admin'), async (req, res) => {
+  try {
+    const companies = await db.companies.findAll();
+    res.json({
+      data: companies.map(c => ({
+        id: c.id,
+        name: c.name,
+        employeeCount: c.employee_count || 0,
+        logo: c.logo || c.name?.charAt(0)?.toUpperCase() || '?',
+        location: c.location_label || '',
+      })),
+    });
+  } catch (err) {
+    console.error('Error fetching companies:', err);
+    res.status(500).json({ error: 'Failed to fetch companies' });
+  }
+});
+
+/**
  * Admin: Generate a new QR code for a display
  * POST /admin/qr
  * Body: { displayId: string }
@@ -181,15 +336,33 @@ app.post('/admin/qr', requireRole('admin'), async (req, res) => {
  * Display: Get the current active QR code
  * GET /display/qr/current?displayId=<displayId>
  */
-app.get('/display/qr/current', requireAnyRole(['display', 'admin']), (req, res) => {
+app.get('/display/qr/current', requireAnyRole(['display', 'admin']), async (req, res) => {
   const displayId = req.query.displayId || 'default-display';
   const companyId = req.query.companyId || null;
-  const current = latestQrByDisplay.get(displayId);
-  if (!current) {
-    // Auto-generate initial QR if none exists
-    return generateQr(displayId, { issuedBy: 'system', companyId }).then((qr) => res.json(qr));
+
+  // Check cache first
+  const cached = latestQrByDisplay.get(displayId);
+  if (cached) {
+    return res.json(cached);
   }
-  return res.json(current);
+
+  // Check database for active session
+  const activeSession = await db.qrSessions.findActiveByDisplay(displayId);
+  if (activeSession) {
+    const buffer = await generateQrImage(activeSession.token);
+    const imageDataUrl = `data:image/png;base64,${buffer.toString('base64')}`;
+    const payload = {
+      token: activeSession.token,
+      expiresAt: activeSession.expires_at,
+      imageDataUrl,
+    };
+    latestQrByDisplay.set(displayId, payload);
+    return res.json(payload);
+  }
+
+  // Auto-generate initial QR if none exists
+  const qr = await generateQr(displayId, { issuedBy: 'system', companyId });
+  return res.json(qr);
 });
 
 /**
@@ -197,15 +370,15 @@ app.get('/display/qr/current', requireAnyRole(['display', 'admin']), (req, res) 
  * GET /qr/validate?token=<token>
  * Returns { valid: true } if token is valid, or { valid: false, error: string } if invalid
  */
-app.get('/qr/validate', requireRole('user'), (req, res) => {
+app.get('/qr/validate', requireRole('user'), async (req, res) => {
   const token = req.query.token;
 
   if (!token || typeof token !== 'string') {
     return res.status(400).json({ valid: false, error: 'token_required' });
   }
 
-  // Check if session exists
-  const session = qrSessions.get(token);
+  // Check if session exists in database
+  const session = await db.qrSessions.findByToken(token);
   if (!session) {
     return res.status(400).json({ valid: false, error: 'expired_or_unknown_qr' });
   }
@@ -215,12 +388,7 @@ app.get('/qr/validate', requireRole('user'), (req, res) => {
     return res.status(409).json({ valid: false, error: 'already_used' });
   }
 
-  // Check expiration
-  if (session.expiresAt < Date.now()) {
-    session.status = 'expired';
-    qrSessions.set(token, session);
-    return res.status(400).json({ valid: false, error: 'expired_or_unknown_qr' });
-  }
+  // Note: QR codes don't expire by time - only when used or replaced
 
   // Verify JWT signature
   try {
@@ -262,8 +430,8 @@ app.post('/scan', requireRole('user'), async (req, res) => {
 
   const { token, fullName, jobTitle, employeeId, type, lat, lng, accuracy, imageData } = parsed.data;
 
-  // Validate QR session
-  const session = qrSessions.get(token);
+  // Validate QR session from database
+  const session = await db.qrSessions.findByToken(token);
   if (!session) {
     return res.status(400).json({ error: 'expired_or_unknown_qr' });
   }
@@ -271,12 +439,7 @@ app.post('/scan', requireRole('user'), async (req, res) => {
     return res.status(409).json({ error: 'already_used' });
   }
 
-  const now = Date.now();
-  if (session.expiresAt < now) {
-    session.status = 'expired';
-    qrSessions.set(token, session);
-    return res.status(400).json({ error: 'expired_or_unknown_qr' });
-  }
+  // Note: QR codes don't expire by time - only when used or replaced
 
   // Verify JWT signature
   try {
@@ -285,83 +448,113 @@ app.post('/scan', requireRole('user'), async (req, res) => {
     return res.status(400).json({ error: 'invalid_token' });
   }
 
-  // Mark session as used
-  session.status = 'used';
-  session.usedAt = now;
-  qrSessions.set(token, session);
+  // Mark session as used in database
+  await db.qrSessions.markUsed(token);
 
-  // Create scan record
-  const scan = {
-    id: nanoid(),
+  // Get company name for snapshot
+  const companyName = session.company_id
+    ? await db.companies.getNameById(session.company_id)
+    : 'Unknown Company';
+
+  // Create scan record in database
+  const scanId = nanoid();
+  const scan = await db.scans.create({
+    id: scanId,
     qrSessionId: session.id,
-    displayId: session.displayId,
-    companyId: session.companyId || null,
-    companyName: COMPANY_NAMES[session.companyId] || 'Unknown Company',
-    fullName,
-    jobTitle,
-    employeeId,
+    displayId: session.display_id,
+    companyId: session.company_id,
+    userId: null, // User lookup could be added if needed
+    fullNameSnapshot: fullName,
+    jobTitleSnapshot: jobTitle,
+    employeeIdSnapshot: employeeId,
+    companyNameSnapshot: companyName,
     type,
     lat,
     lng,
     accuracy,
-    imageData,
-    createdAt: new Date(now).toISOString(),
+    image: imageData,
+  });
+
+  // Format response for client compatibility
+  const scanResponse = {
+    id: scan.id,
+    qrSessionId: scan.qr_session_id,
+    displayId: scan.display_id,
+    companyId: scan.company_id,
+    companyName: scan.company_name_snapshot,
+    fullName: scan.full_name_snapshot,
+    jobTitle: scan.job_title_snapshot,
+    employeeId: scan.employee_id_snapshot,
+    type: scan.type,
+    lat: scan.lat,
+    lng: scan.lng,
+    accuracy: scan.accuracy,
+    imageData: scan.image,
+    createdAt: scan.created_at,
   };
-  scans.unshift(scan);
 
   // Emit real-time events
-  io.to(getDisplayRoom(session.displayId)).emit('qr:consumed', { token, at: scan.createdAt });
-  io.to('admin').emit('scan:logged', scan);
+  io.to(getDisplayRoom(session.display_id)).emit('qr:consumed', { token, at: scan.created_at });
+  io.to('admin').emit('scan:logged', scanResponse);
 
   // Auto-generate next QR for the display (with same company)
-  await generateQr(session.displayId, { companyId: session.companyId });
+  await generateQr(session.display_id, { companyId: session.company_id });
 
-  return res.json(scan);
+  return res.json(scanResponse);
 });
 
 /**
  * Admin: Get all scans with optional search
  * GET /admin/scans?search=<term>
  */
-app.get('/admin/scans', requireRole('admin'), (req, res) => {
+app.get('/admin/scans', requireRole('admin'), async (req, res) => {
   const { search, companyId } = req.query;
-  let result = scans;
 
-  // Filter by company if specified
-  if (companyId) {
-    result = result.filter((s) => s.companyId === companyId);
-  }
+  const rows = await db.scans.findAll({
+    companyId: companyId || null,
+    search: search || null
+  });
 
-  // Filter by search term
-  if (search) {
-    const term = String(search).toLowerCase();
-    result = result.filter(
-      (s) =>
-        s.fullName.toLowerCase().includes(term) ||
-        s.jobTitle.toLowerCase().includes(term) ||
-        s.employeeId.toLowerCase().includes(term)
-    );
-  }
-  res.json({ data: result });
+  // Format for client compatibility
+  const data = rows.map((s) => ({
+    id: s.id,
+    qrSessionId: s.qr_session_id,
+    displayId: s.display_id,
+    companyId: s.company_id,
+    companyName: s.company_name_snapshot,
+    fullName: s.full_name_snapshot,
+    jobTitle: s.job_title_snapshot,
+    employeeId: s.employee_id_snapshot,
+    type: s.type,
+    lat: s.lat,
+    lng: s.lng,
+    accuracy: s.accuracy,
+    imageData: s.image,
+    createdAt: s.created_at,
+  }));
+
+  res.json({ data });
 });
 
 /**
  * Admin: Export scans as CSV
  * GET /admin/export.csv
  */
-app.get('/admin/export.csv', requireRole('admin'), (req, res) => {
+app.get('/admin/export.csv', requireRole('admin'), async (req, res) => {
+  const rows = await db.scans.findAll({});
+
   const header = 'id,fullName,jobTitle,employeeId,lat,lng,accuracy,createdAt\n';
-  const rows = scans
+  const csvRows = rows
     .map((s) =>
       [
         s.id,
-        s.fullName,
-        s.jobTitle,
-        s.employeeId,
+        s.full_name_snapshot,
+        s.job_title_snapshot,
+        s.employee_id_snapshot,
         s.lat ?? '',
         s.lng ?? '',
         s.accuracy ?? '',
-        s.createdAt,
+        s.created_at,
       ]
         .map((v) => `"${String(v).replace(/"/g, '""')}"`)
         .join(',')
@@ -369,17 +562,19 @@ app.get('/admin/export.csv', requireRole('admin'), (req, res) => {
     .join('\n');
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="scans.csv"');
-  res.send(header + rows);
+  res.send(header + csvRows);
 });
 
 /**
  * Admin: Export scans as XLSX (Excel)
  * GET /admin/export.xlsx
  */
-app.get('/admin/export.xlsx', requireRole('admin'), (req, res) => {
+app.get('/admin/export.xlsx', requireRole('admin'), async (req, res) => {
+  const rows = await db.scans.findAll({});
+
   // Helper function to format date in GMT+7
-  const formatToGMT7 = (isoString) => {
-    const date = new Date(isoString);
+  const formatToGMT7 = (dateValue) => {
+    const date = new Date(dateValue);
     // Add 7 hours to convert from UTC to GMT+7
     const gmt7Date = new Date(date.getTime() + (7 * 60 * 60 * 1000));
     const day = String(gmt7Date.getUTCDate()).padStart(2, '0');
@@ -395,13 +590,13 @@ app.get('/admin/export.xlsx', requireRole('admin'), (req, res) => {
   };
 
   // Prepare data for Excel
-  const data = scans.map((s) => {
-    const datetime = formatToGMT7(s.createdAt);
+  const data = rows.map((s) => {
+    const datetime = formatToGMT7(s.created_at);
     return {
       'ID': s.id,
-      'Full Name': s.fullName,
-      'Job Title': s.jobTitle,
-      'Employee ID': s.employeeId,
+      'Full Name': s.full_name_snapshot,
+      'Job Title': s.job_title_snapshot,
+      'Employee ID': s.employee_id_snapshot,
       'Type': s.type || '',
       'Latitude': s.lat ?? '',
       'Longitude': s.lng ?? '',
@@ -452,12 +647,13 @@ app.get('/admin/export.xlsx', requireRole('admin'), (req, res) => {
  * Admin: Reset all scans (clear dashboard)
  * POST /admin/reset
  */
-app.post('/admin/reset', requireRole('admin'), (req, res) => {
-  // Clear all scans
-  scans.length = 0;
+app.post('/admin/reset', requireRole('admin'), async (req, res) => {
+  const { companyId } = req.body;
 
-  // Clear all QR sessions
-  qrSessions.clear();
+  // Reset in database
+  await db.admin.resetDashboard(companyId);
+
+  // Clear cache
   latestQrByDisplay.clear();
 
   console.log('Dashboard reset by admin');
@@ -526,18 +722,24 @@ async function generateQr(displayId, options = {}) {
     QR_SECRET
   );
 
-  // Create session record
-  const session = {
+  // Ensure display exists (auto-create if needed)
+  if (options.companyId) {
+    await db.displays.findOrCreate({
+      id: displayId,
+      companyId: options.companyId,
+      label: displayId
+    });
+  }
+
+  // Create session record in database
+  await db.qrSessions.create({
     id,
     token,
     displayId,
     companyId: options.companyId || null,
-    createdAt: new Date().toISOString(),
     expiresAt: exp,
-    status: 'active',
     issuedBy: options.issuedBy || 'system',
-  };
-  qrSessions.set(token, session);
+  });
 
   // Generate QR image
   const buffer = await generateQrImage(token);
@@ -550,7 +752,7 @@ async function generateQr(displayId, options = {}) {
     imageDataUrl,
   };
 
-  // Store and broadcast
+  // Store in cache and broadcast
   latestQrByDisplay.set(displayId, payload);
   io.to(getDisplayRoom(displayId)).emit('qr:new', payload);
 
@@ -577,18 +779,35 @@ async function generateQrImage(text) {
 }
 
 // =============================================================================
-// Session Cleanup (expire stale sessions)
+// Session Cleanup (expire stale sessions in database)
 // =============================================================================
 
-setInterval(() => {
-  const now = Date.now();
-  for (const [token, session] of qrSessions.entries()) {
-    if (session.status === 'active' && session.expiresAt < now) {
-      session.status = 'expired';
-      qrSessions.set(token, session);
+setInterval(async () => {
+  try {
+    const expired = await db.qrSessions.expireOldSessions();
+    if (expired > 0) {
+      console.log(`Expired ${expired} stale QR sessions`);
     }
+  } catch (err) {
+    console.error('Error expiring sessions:', err);
   }
-}, 5000);
+}, 30000);
+
+// =============================================================================
+// Graceful Shutdown
+// =============================================================================
+
+process.on('SIGINT', async () => {
+  console.log('Shutting down gracefully...');
+  await db.closePool();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('Shutting down gracefully...');
+  await db.closePool();
+  process.exit(0);
+});
 
 // =============================================================================
 // Start Server
@@ -598,6 +817,7 @@ server.listen(PORT, () => {
   console.log(`
 ╔═══════════════════════════════════════════════════════════════╗
 ║         Demo QR Scanning & Tracking Server                    ║
+║         (PostgreSQL Database Mode)                            ║
 ╠═══════════════════════════════════════════════════════════════╣
 ║  Server listening on port ${PORT}                                ║
 ║                                                               ║
@@ -608,6 +828,7 @@ server.listen(PORT, () => {
 ║    POST /scan                - Submit scan (user)             ║
 ║    GET  /admin/scans         - List all scans (admin)         ║
 ║    GET  /admin/export.csv    - Export scans CSV (admin)       ║
+║    GET  /admin/export.xlsx   - Export scans XLSX (admin)      ║
 ║                                                               ║
 ║  WebSocket Events:                                            ║
 ║    qr:new       - New QR generated                            ║

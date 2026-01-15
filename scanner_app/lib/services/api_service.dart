@@ -57,6 +57,47 @@ class ApiService {
     return false;
   }
 
+  /// Login with username and password
+  /// Returns LoginResult with user data on success or error message on failure
+  Future<LoginResult> login(String username, String password) async {
+    if (_baseUrl == null) {
+      return LoginResult.error('API not connected');
+    }
+
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/auth/login'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'username': username,
+              'password': password,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          return LoginResult.success(
+            fullName: data['user']['fullName'] ?? '',
+            employeeId: data['user']['employeeId'] ?? '',
+            jobTitle: data['user']['jobTitle'] ?? '',
+            companyId: data['user']['company']?['id'],
+            companyName: data['user']['company']?['name'],
+            token: data['token'],
+          );
+        }
+        return LoginResult.error(data['error'] ?? 'Login failed');
+      } else {
+        final data = jsonDecode(response.body);
+        return LoginResult.error(data['error'] ?? 'Login failed');
+      }
+    } catch (e) {
+      return LoginResult.error('Network error: ${e.toString()}');
+    }
+  }
+
   /// Submit a scan to the server
   Future<ScanResult> submitScan(ScanData scanData) async {
     if (_baseUrl == null) {
@@ -146,4 +187,50 @@ class QrValidationResult {
   final String? error;
 
   QrValidationResult({required this.valid, this.error});
+}
+
+/// Result of login attempt
+class LoginResult {
+  final bool success;
+  final String? error;
+  final String? fullName;
+  final String? employeeId;
+  final String? jobTitle;
+  final String? companyId;
+  final String? companyName;
+  final String? token;
+
+  LoginResult._({
+    required this.success,
+    this.error,
+    this.fullName,
+    this.employeeId,
+    this.jobTitle,
+    this.companyId,
+    this.companyName,
+    this.token,
+  });
+
+  factory LoginResult.success({
+    required String fullName,
+    required String employeeId,
+    required String jobTitle,
+    String? companyId,
+    String? companyName,
+    String? token,
+  }) {
+    return LoginResult._(
+      success: true,
+      fullName: fullName,
+      employeeId: employeeId,
+      jobTitle: jobTitle,
+      companyId: companyId,
+      companyName: companyName,
+      token: token,
+    );
+  }
+
+  factory LoginResult.error(String message) {
+    return LoginResult._(success: false, error: message);
+  }
 }

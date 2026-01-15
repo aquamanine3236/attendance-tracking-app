@@ -78,24 +78,35 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorMessage = null;
     });
 
-    // Simulate login delay
-    await Future.delayed(const Duration(milliseconds: 500));
+    // Ensure API is connected
+    if (!_apiService.isConnected) {
+      await _apiService.connect();
+    }
 
-    // Mock authentication - in production, validate against server
-    // For now, accept any non-empty credentials and return mock user data
-    final userData = UserData(
-      fullName: 'Sakshi Choudhary',
-      employeeId: 'EMP-201',
-      jobTitle: 'Marketing Manager',
-      company: const CompanyData(
-        companyId: 'company-1',
-        companyName: 'ABC Corporation',
-      ),
+    // Call real login API
+    final result = await _apiService.login(
+      _usernameController.text.trim(),
+      _passwordController.text,
     );
 
-    setState(() => _isLoading = false);
+    if (!mounted) return;
 
-    if (mounted) {
+    if (result.success) {
+      // Build UserData from login response
+      final userData = UserData(
+        fullName: result.fullName ?? '',
+        employeeId: result.employeeId ?? '',
+        jobTitle: result.jobTitle ?? '',
+        company: result.companyId != null
+            ? CompanyData(
+                companyId: result.companyId!,
+                companyName: result.companyName ?? '',
+              )
+            : null,
+      );
+
+      setState(() => _isLoading = false);
+
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (context) => ScannerScreen(
@@ -104,6 +115,11 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       );
+    } else {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = result.error ?? 'Login failed. Please try again.';
+      });
     }
   }
 
