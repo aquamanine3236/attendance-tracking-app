@@ -50,6 +50,13 @@ const TOKEN_MAP = {
   user: process.env.USER_JWT || 'demo-user-token',
 };
 
+// Company name mapping (for scanner response)
+const COMPANY_NAMES = {
+  'company-1': 'ABC Corporation',
+  'company-2': 'XYZ Tech',
+  'company-3': 'Global Solutions',
+};
+
 // =============================================================================
 // In-Memory Storage (replace with database in production)
 // =============================================================================
@@ -165,7 +172,8 @@ app.get('/qr/image', async (req, res) => {
  */
 app.post('/admin/qr', requireRole('admin'), async (req, res) => {
   const displayId = req.body.displayId || 'default-display';
-  const qr = await generateQr(displayId, { issuedBy: 'admin' });
+  const companyId = req.body.companyId || null;
+  const qr = await generateQr(displayId, { issuedBy: 'admin', companyId });
   res.json(qr);
 });
 
@@ -175,10 +183,11 @@ app.post('/admin/qr', requireRole('admin'), async (req, res) => {
  */
 app.get('/display/qr/current', requireAnyRole(['display', 'admin']), (req, res) => {
   const displayId = req.query.displayId || 'default-display';
+  const companyId = req.query.companyId || null;
   const current = latestQrByDisplay.get(displayId);
   if (!current) {
     // Auto-generate initial QR if none exists
-    return generateQr(displayId, { issuedBy: 'system' }).then((qr) => res.json(qr));
+    return generateQr(displayId, { issuedBy: 'system', companyId }).then((qr) => res.json(qr));
   }
   return res.json(current);
 });
@@ -286,6 +295,8 @@ app.post('/scan', requireRole('user'), async (req, res) => {
     id: nanoid(),
     qrSessionId: session.id,
     displayId: session.displayId,
+    companyId: session.companyId || null,
+    companyName: COMPANY_NAMES[session.companyId] || 'Unknown Company',
     fullName,
     jobTitle,
     employeeId,
@@ -302,8 +313,8 @@ app.post('/scan', requireRole('user'), async (req, res) => {
   io.to(getDisplayRoom(session.displayId)).emit('qr:consumed', { token, at: scan.createdAt });
   io.to('admin').emit('scan:logged', scan);
 
-  // Auto-generate next QR for the display
-  await generateQr(session.displayId);
+  // Auto-generate next QR for the display (with same company)
+  await generateQr(session.displayId, { companyId: session.companyId });
 
   return res.json(scan);
 });
@@ -313,11 +324,18 @@ app.post('/scan', requireRole('user'), async (req, res) => {
  * GET /admin/scans?search=<term>
  */
 app.get('/admin/scans', requireRole('admin'), (req, res) => {
-  const { search } = req.query;
+  const { search, companyId } = req.query;
   let result = scans;
+
+  // Filter by company if specified
+  if (companyId) {
+    result = result.filter((s) => s.companyId === companyId);
+  }
+
+  // Filter by search term
   if (search) {
     const term = String(search).toLowerCase();
-    result = scans.filter(
+    result = result.filter(
       (s) =>
         s.fullName.toLowerCase().includes(term) ||
         s.jobTitle.toLowerCase().includes(term) ||
@@ -513,6 +531,7 @@ async function generateQr(displayId, options = {}) {
     id,
     token,
     displayId,
+    companyId: options.companyId || null,
     createdAt: new Date().toISOString(),
     expiresAt: exp,
     status: 'active',

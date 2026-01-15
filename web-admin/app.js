@@ -61,7 +61,6 @@ let API;
 let scans = [];
 let filteredScans = [];
 let socket = null;
-let currentLocation = null; // Will be set based on selected company
 
 function formatTime(dateLike) {
     return new Date(dateLike).toLocaleTimeString([], {
@@ -104,10 +103,8 @@ function renderCompanyGrid() {
 }
 
 function selectCompany(id, name) {
-    const company = MOCK_COMPANIES.find(c => c.id === id);
     CompanyContext.companyId = id;
     CompanyContext.companyName = name;
-    currentLocation = { id: `loc-${id}`, name: company.location, status: 'active' };
     document.getElementById('currentCompanyName').textContent = name;
     showView('dashboardView');
     initDashboard();
@@ -171,11 +168,14 @@ async function initDashboard() {
         socket.on('ready', loadInitial);
 
         socket.on('scan:logged', (scan) => {
-            scan._isNew = true;
-            scans = [scan, ...scans];
-            applyFilters();
-            document.getElementById('qrStatus').textContent =
-                `🔔 New scan: ${scan.fullName} at ${new Date(scan.createdAt).toLocaleTimeString()}`;
+            // Only add scan if it matches the current company
+            if (scan.companyId === CompanyContext.companyId) {
+                scan._isNew = true;
+                scans = [scan, ...scans];
+                applyFilters();
+                document.getElementById('qrStatus').textContent =
+                    `🔔 New scan: ${scan.fullName} at ${new Date(scan.createdAt).toLocaleTimeString()}`;
+            }
         });
 
         socket.on('connect_error', (err) => {
@@ -184,7 +184,6 @@ async function initDashboard() {
         });
 
         await loadInitial();
-        renderLocations();
 
     } catch (err) {
         document.getElementById('qrStatus').textContent = err.message;
@@ -198,7 +197,13 @@ async function initDashboard() {
 
 async function loadInitial() {
     try {
-        const res = await fetch(`${API}/admin/scans`, {
+        // Filter by company when loading scans
+        const companyId = CompanyContext.companyId;
+        let url = `${API}/admin/scans`;
+        if (companyId) {
+            url += `?companyId=${encodeURIComponent(companyId)}`;
+        }
+        const res = await fetch(url, {
             headers: { Authorization: `Bearer ${ADMIN_TOKEN}` }
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -321,15 +326,13 @@ function escapeHtml(str) {
 }
 
 function updateStats(list = filteredScans, selectedType = document.getElementById('typeFilter')?.value || 'all') {
+    // Count from the filtered list (which already has type filter applied)
     const checkIns = list.filter(s => s.type === 'check-in').length;
     const checkOuts = list.filter(s => s.type === 'check-out').length;
 
-    // Keep cards aligned with the active type filter so counts match the visible table
-    const visibleCheckIns = selectedType === 'check-out' ? 0 : checkIns;
-    const visibleCheckOuts = selectedType === 'check-in' ? 0 : checkOuts;
-
-    document.getElementById('checkInCount').textContent = visibleCheckIns;
-    document.getElementById('checkOutCount').textContent = visibleCheckOuts;
+    // Stats show what's actually visible in the table
+    document.getElementById('checkInCount').textContent = checkIns;
+    document.getElementById('checkOutCount').textContent = checkOuts;
 }
 
 function updateConnectionStatus(connected) {
@@ -345,57 +348,6 @@ function updateConnectionStatus(connected) {
     }
 }
 
-// ==========================================================================
-// Location Manager
-// ==========================================================================
-
-function renderLocations() {
-    const list = document.getElementById('locationList');
-    if (!currentLocation) {
-        list.innerHTML = '<li class="location-item"><div class="location-info">No location set</div></li>';
-        return;
-    }
-
-    const loc = currentLocation;
-    list.innerHTML = `
-    <li class="location-item">
-      <div class="location-info">
-        <div class="location-icon">📍</div>
-        <div>
-          <div class="location-name">${escapeHtml(loc.name)}</div>
-          <span class="location-status ${loc.status}">${loc.status === 'active' ? 'Active' : 'Inactive'}</span>
-        </div>
-      </div>
-      <div class="location-actions">
-        <button class="secondary" onclick="regenerateQr('${loc.id}')">Regenerate QR</button>
-        <button class="secondary" onclick="viewLocationQr('${loc.id}')">View QR</button>
-        <button class="secondary" onclick="toggleLocationStatus()">${loc.status === 'active' ? 'Disable' : 'Enable'}</button>
-      </div>
-    </li>
-  `;
-}
-
-function regenerateQr(locationId) {
-    // TODO: Backend integration - Regenerate QR for location
-    alert(`QR regenerated for location: ${currentLocation.name}`);
-}
-
-function viewLocationQr(locationId) {
-    // Open display with company name and location
-    const url = `../web-display/index.html?company=${encodeURIComponent(CompanyContext.companyName)}&location=${encodeURIComponent(currentLocation.name)}`;
-    window.open(url, '_blank');
-}
-
-function toggleLocationStatus() {
-    if (currentLocation) {
-        currentLocation.status = currentLocation.status === 'active' ? 'inactive' : 'active';
-        renderLocations();
-    }
-}
-
-// Remove add location button functionality - 1 location per company
-const addLocBtn = document.getElementById('addLocationBtn');
-if (addLocBtn) addLocBtn.style.display = 'none';
 
 // ==========================================================================
 // Export Dialog
@@ -452,7 +404,9 @@ function closePhotoModal() {
 const newQrEl = document.getElementById('newQr');
 if (newQrEl) {
     newQrEl.addEventListener('click', async () => {
-        const displayId = 'default-display';
+        // Use company-specific displayId for isolation
+        const displayId = `display-${CompanyContext.companyId}`;
+        const companyId = CompanyContext.companyId;
         document.getElementById('qrStatus').textContent = '⏳ Requesting new QR...';
 
         try {
@@ -462,7 +416,7 @@ if (newQrEl) {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${ADMIN_TOKEN}`,
                 },
-                body: JSON.stringify({ displayId }),
+                body: JSON.stringify({ displayId, companyId }),
             });
             if (!res.ok) throw new Error('Failed to generate QR');
             const data = await res.json();

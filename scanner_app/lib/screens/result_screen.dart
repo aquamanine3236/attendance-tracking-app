@@ -78,6 +78,14 @@ class ResultScreen extends StatelessWidget {
                       ),
                       child: Column(
                         children: [
+                          if (result.companyName != null) ...[
+                            _buildDetailRow(
+                              context,
+                              'Company',
+                              result.companyName!,
+                            ),
+                            const SizedBox(height: 16),
+                          ],
                           _buildDetailRow(
                             context,
                             'Name',

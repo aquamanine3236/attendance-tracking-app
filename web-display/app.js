@@ -2,6 +2,7 @@
  * Enhanced QR Display
  * 
  * Features:
+ * - Company selection with multi-company support
  * - Fixed location display with permanent QR codes
  * - Location name prominently displayed
  * - QR generation timestamp (no countdown/TTL)
@@ -10,11 +11,106 @@
  * - Download QR functionality
  */
 
+// ==========================================================================
+// Company Context Management
+// ==========================================================================
+
+const CompanyContext = {
+    get companyId() {
+        return sessionStorage.getItem('displayCompanyId');
+    },
+
+    set companyId(id) {
+        sessionStorage.setItem('displayCompanyId', id);
+    },
+
+    get companyName() {
+        return sessionStorage.getItem('displayCompanyName');
+    },
+
+    set companyName(name) {
+        sessionStorage.setItem('displayCompanyName', name);
+    },
+
+    clear() {
+        sessionStorage.removeItem('displayCompanyId');
+        sessionStorage.removeItem('displayCompanyName');
+    },
+
+    isSelected() {
+        return !!this.companyId;
+    }
+};
+
+// ==========================================================================
+// Mock Data
+// ==========================================================================
+
+const MOCK_COMPANIES = [
+    { id: 'company-1', name: 'ABC Corporation', employeeCount: 150, logo: 'A', location: 'HCM Office' },
+    { id: 'company-2', name: 'XYZ Tech', employeeCount: 85, logo: 'X', location: 'Hanoi Office' },
+    { id: 'company-3', name: 'Global Solutions', employeeCount: 200, logo: 'G', location: 'Da Nang Office' },
+];
+
+// ==========================================================================
+// View Management
+// ==========================================================================
+
+function showView(viewId) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(viewId).classList.add('active');
+}
+
+// ==========================================================================
+// Company Selection
+// ==========================================================================
+
+function renderCompanyGrid() {
+    const grid = document.getElementById('companyGrid');
+    if (!grid) {
+        console.error('companyGrid element not found!');
+        return;
+    }
+    grid.innerHTML = MOCK_COMPANIES.map(company => `
+    <div class="company-card" onclick="selectCompany('${company.id}', '${company.name}', '${company.location}')">
+      <div class="company-logo">${company.logo}</div>
+      <div class="company-name">${company.name}</div>
+      <div class="company-info">${company.location}</div>
+    </div>
+  `).join('');
+}
+
+function selectCompany(id, name, location) {
+    CompanyContext.companyId = id;
+    CompanyContext.companyName = name;
+    document.getElementById('locationName').textContent = name;
+    showView('qrView');
+    initQrDisplay();
+}
+
+function goBackToCompanySelection() {
+    // Clear company context
+    CompanyContext.clear();
+    // Show company selection view
+    showView('companyView');
+    // Clear URL parameters by reloading without them
+    if (window.location.search) {
+        window.location.href = window.location.pathname;
+    }
+}
+
+// ==========================================================================
+// State
+// ==========================================================================
+
 const params = new URLSearchParams(location.search);
 const DISPLAY_TOKEN = params.get('token') || 'demo-display-token';
-const displayId = params.get('displayId') || 'default-display';
-const companyName = params.get('company') || 'ABC Corporation';
-const locationName = params.get('location') || 'HCM Office';
+// displayId is now company-specific for isolation
+function getDisplayId() {
+    const companyId = CompanyContext.companyId || params.get('companyId') || 'default';
+    return `display-${companyId}`;
+}
+let companyName = params.get('company') || CompanyContext.companyName || 'ABC Corporation';
 let API;
 let currentQrData = null;
 
@@ -24,9 +120,6 @@ function formatTime(dateLike) {
     // Force 24-hour clock regardless of browser locale
     return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
-
-// Set company/location name from URL params
-document.getElementById('locationName').textContent = companyName;
 
 // ==========================================================================
 // API Resolution
@@ -55,7 +148,13 @@ async function resolveApi() {
 async function fetchNewQr() {
     try {
         showLoading();
-        const res = await fetch(`${API}/display/qr/current?displayId=${encodeURIComponent(displayId)}`, {
+        // Include companyId in the request so QR is associated with the company
+        const currentCompanyId = CompanyContext.companyId || '';
+        let url = `${API}/display/qr/current?displayId=${encodeURIComponent(getDisplayId())}`;
+        if (currentCompanyId) {
+            url += `&companyId=${encodeURIComponent(currentCompanyId)}`;
+        }
+        const res = await fetch(url, {
             headers: { 'Authorization': `Bearer ${DISPLAY_TOKEN}` }
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -63,7 +162,6 @@ async function fetchNewQr() {
         setQr(data);
     } catch (err) {
         document.getElementById('status').textContent = `QR fetch failed: ${err.message}`;
-        document.getElementById('generatedAt').textContent = '—';
         hideLoading();
     }
 }
@@ -93,9 +191,6 @@ function setQr(data, animate = false) {
     downloadBtn.style.display = 'flex';
 
     document.getElementById('status').textContent = 'Awaiting scan...';
-
-    // Show generation timestamp (not expiry countdown)
-    document.getElementById('generatedAt').textContent = formatTime(data.createdAt || Date.now());
 }
 
 function showLoading() {
@@ -142,7 +237,7 @@ function downloadQr() {
 
     // Create filename with location and timestamp
     const timestamp = new Date().toISOString().split('T')[0];
-    const safeName = locationName.replace(/[^a-zA-Z0-9]/g, '_');
+    const safeName = companyName.replace(/[^a-zA-Z0-9]/g, '_');
     link.download = `qr-${safeName}-${timestamp}.png`;
 
     document.body.appendChild(link);
@@ -174,16 +269,20 @@ document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscr
 // Initialization
 // ==========================================================================
 
-(async () => {
+async function initQrDisplay() {
     try {
         API = await resolveApi();
+
+        // Update company name from context
+        companyName = CompanyContext.companyName || companyName;
+        document.getElementById('locationName').textContent = companyName;
 
         // Fetch initial QR
         await fetchNewQr();
 
-        // Initialize Socket.IO
+        // Initialize Socket.IO with company-specific displayId
         const socket = io(API, {
-            query: { role: 'display', token: DISPLAY_TOKEN, displayId },
+            query: { role: 'display', token: DISPLAY_TOKEN, displayId: getDisplayId() },
             transports: ['websocket'],
             reconnectionAttempts: 10,
         });
@@ -220,4 +319,28 @@ document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscr
         hideLoading();
         updateConnectionStatus(false);
     }
+}
+
+// Page initialization
+(function init() {
+    // Check if company is specified via URL parameter
+    const urlCompany = params.get('company');
+    const urlCompanyId = params.get('companyId');
+
+    if (urlCompany) {
+        // Direct access with company parameter - skip selection
+        companyName = urlCompany;
+        if (urlCompanyId) {
+            CompanyContext.companyId = urlCompanyId;
+            CompanyContext.companyName = urlCompany;
+        }
+        document.getElementById('locationName').textContent = companyName;
+        showView('qrView');
+        initQrDisplay();
+    } else {
+        // Render company selection grid
+        renderCompanyGrid();
+        // companyView is already active by default in HTML
+    }
 })();
+

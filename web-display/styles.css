@@ -32,6 +32,102 @@ body {
     padding: 20px;
 }
 
+/* =========================================
+   Views Container
+   ========================================= */
+.view {
+    display: none;
+}
+
+.view.active {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+/* =========================================
+   Company Selection View
+   ========================================= */
+#companyView {
+    min-height: 80vh;
+}
+
+.company-container {
+    max-width: 900px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.company-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.company-header h1 {
+    margin: 0 0 8px;
+    font-size: 32px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #fff, #9fcdff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.company-header p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 16px;
+}
+
+.company-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
+}
+
+.company-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 28px;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.company-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent-blue);
+    box-shadow: 0 12px 40px rgba(30, 123, 255, 0.15);
+}
+
+.company-logo {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, var(--accent-blue), #3d8bff);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 16px;
+}
+
+.company-name {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+}
+
+.company-info {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
 /* Main Card */
 #card {
     background: var(--bg-card);
@@ -300,6 +396,25 @@ button:active {
 }
 
 .fullscreen-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* Back Button (top left) */
+.back-btn {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.2s;
+    font-size: 18px;
+}
+
+.back-btn:hover {
     background: rgba(255, 255, 255, 0.15);
 }
 

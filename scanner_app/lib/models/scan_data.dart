@@ -43,6 +43,8 @@ class ScanData {
 class ScanResult {
   final String id;
   final String displayId;
+  final String? companyId;
+  final String? companyName;
   final String fullName;
   final String jobTitle;
   final String employeeId;
@@ -56,6 +58,8 @@ class ScanResult {
   ScanResult({
     required this.id,
     required this.displayId,
+    this.companyId,
+    this.companyName,
     required this.fullName,
     required this.jobTitle,
     required this.employeeId,
@@ -71,6 +75,8 @@ class ScanResult {
     return ScanResult(
       id: json['id'] ?? '',
       displayId: json['displayId'] ?? '',
+      companyId: json['companyId'],
+      companyName: json['companyName'],
       fullName: json['fullName'] ?? '',
       jobTitle: json['jobTitle'] ?? '',
       employeeId: json['employeeId'] ?? '',

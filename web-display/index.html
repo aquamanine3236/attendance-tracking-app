@@ -12,43 +12,59 @@
 <body>
     <button class="fullscreen-btn" id="fullscreenBtn" title="Toggle Fullscreen">⛶</button>
 
-    <div id="card">
-        <div class="pill">Display</div>
-        <h1>Scan Me</h1>
+    <!-- =========================================
+       Company Selection View
+       ========================================= -->
+    <div id="companyView" class="view active">
+        <div class="company-container">
+            <div class="company-header">
+                <h1>Select Company</h1>
+                <p>Choose a company to show QR code</p>
+            </div>
 
-        <!-- Location Name -->
-        <div class="location-name" id="locationDisplay">
-            <span id="locationName">HCM Office</span>
-        </div>
-
-        <div class="qr-container" id="qrContainer">
-            <div class="spinner" id="spinner"></div>
-            <img id="qr" alt="QR code" style="display:none;" />
-            <div class="qr-overlay" id="qrOverlay">
-                <span class="qr-overlay-text">✓ Scanned!</span>
+            <div id="companyGrid" class="company-grid">
+                <!-- Populated by JavaScript -->
             </div>
         </div>
+    </div>
 
-        <!-- Timestamp -->
-        <div class="timestamp-container">
-            <div class="timestamp-label">QR generated at</div>
-            <div class="timestamp-value" id="generatedAt">—</div>
-        </div>
+    <!-- =========================================
+       QR Display View
+       ========================================= -->
+    <div id="qrView" class="view">
+        <button class="back-btn" id="backBtn" onclick="goBackToCompanySelection()" title="Change Company">➜]</button>
+        <div id="card">
+            <div class="pill">Display</div>
+            <h1>Scan Me</h1>
 
-        <p id="status">Waiting for QR...</p>
+            <!-- Location Name -->
+            <div class="location-name" id="locationDisplay">
+                <span id="locationName">HCM Office</span>
+            </div>
 
-        <div class="button-row">
-            <button class="btn-primary" id="downloadBtn" style="display:none;">
-                Download QR
-            </button>
-            <button class="btn-secondary" id="refreshBtn">
-                Refresh
-            </button>
-        </div>
+            <div class="qr-container" id="qrContainer">
+                <div class="spinner" id="spinner"></div>
+                <img id="qr" alt="QR code" style="display:none;" />
+                <div class="qr-overlay" id="qrOverlay">
+                    <span class="qr-overlay-text">✓ Scanned!</span>
+                </div>
+            </div>
 
-        <div class="connection-status">
-            <div class="status-dot" id="statusDot"></div>
-            <span id="connectionText">Connecting...</span>
+            <p id="status">Waiting for QR...</p>
+
+            <div class="button-row">
+                <button class="btn-primary" id="downloadBtn" style="display:none;">
+                    Download QR
+                </button>
+                <button class="btn-secondary" id="refreshBtn">
+                    Refresh
+                </button>
+            </div>
+
+            <div class="connection-status">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="connectionText">Connecting...</span>
+            </div>
         </div>
     </div>
 
