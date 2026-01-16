@@ -28,11 +28,11 @@
   --space-3xl: 32px;
   --space-4xl: 40px;
 
-  /* Border radius */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  /* Border radius - reduced for cleaner look */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
 }
 
 * {
@@ -202,36 +202,38 @@ body {
 
 .company-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: var(--space-lg);
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-md);
 }
 
 .company-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: var(--space-2xl);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
   cursor: pointer;
-  transition: border-color 0.2s, transform 0.2s;
+  transition: border-color 0.15s;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
 }
 
 .company-card:hover {
-  transform: translateY(-2px);
   border-color: var(--accent-blue);
 }
 
 .company-logo {
-  width: 48px;
-  height: 48px;
-  background: var(--accent-blue);
-  border-radius: var(--radius-md);
+  width: 36px;
+  height: 36px;
+  background: var(--pill-bg);
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 14px;
   font-weight: 600;
-  color: white;
-  margin-bottom: var(--space-lg);
+  color: var(--accent-cyan);
+  flex-shrink: 0;
   overflow: hidden;
 }
 
@@ -249,37 +251,43 @@ body {
   justify-content: center;
 }
 
+.company-card-content {
+  flex: 1;
+  min-width: 0;
+}
+
 .company-name {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
-  margin-bottom: var(--space-xs);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .company-info {
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .admin-banner {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-lg);
-  padding: var(--space-lg) var(--space-xl);
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-xl);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
-  width: 100%;
-  max-width: 640px;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  width: auto;
+  max-width: 480px;
   text-align: left;
-  margin: var(--space-lg) auto 0;
+  margin: var(--space-md) auto 0;
 }
 
 .admin-banner-body {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  width: 100%;
+  gap: 6px;
 }
 
 .admin-banner-top {
@@ -291,18 +299,17 @@ body {
 }
 
 .admin-banner-name {
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.2px;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .role-chip {
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(30, 123, 255, 0.12);
-  border: 1px solid rgba(30, 123, 255, 0.3);
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(30, 123, 255, 0.1);
+  border: none;
   color: var(--accent-blue);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
 }
 
@@ -315,28 +322,28 @@ body {
 .meta-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  color: var(--text-secondary);
-  font-size: 13px;
+  gap: 4px;
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 12px;
   line-height: 1.2;
 }
 
 .admin-avatar {
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
-  background: rgba(30, 123, 255, 0.12);
-  border: 1px solid rgba(30, 123, 255, 0.25);
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  background: rgba(30, 123, 255, 0.08);
+  border: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  color: var(--accent-cyan);
-  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 14px;
   position: relative;
   overflow: hidden;
 }

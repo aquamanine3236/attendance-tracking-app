@@ -590,44 +590,25 @@ app.get('/admin/scans', requireRole('admin'), async (req, res) => {
 });
 
 /**
- * Admin: Export scans as CSV
- * GET /admin/export.csv
- */
-app.get('/admin/export.csv', requireRole('admin'), async (req, res) => {
-  const rows = await db.scans.findAll({});
-
-  const header = 'id,fullName,jobTitle,employeeId,lat,lng,accuracy,createdAt\n';
-  const csvRows = rows
-    .map((s) =>
-      [
-        s.id,
-        s.full_name_snapshot,
-        s.job_title_snapshot,
-        s.employee_id_snapshot,
-        s.lat ?? '',
-        s.lng ?? '',
-        s.accuracy ?? '',
-        s.created_at,
-      ]
-        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-        .join(',')
-    )
-    .join('\n');
-  res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', 'attachment; filename="scans.csv"');
-  res.send(header + csvRows);
-});
-
-/**
  * Admin: Export scans as XLSX (Excel)
  * GET /admin/export.xlsx
  */
 app.get('/admin/export.xlsx', requireRole('admin'), async (req, res) => {
-  const rows = await db.scans.findAll({});
+  const { companyId } = req.query;
+  const rows = await db.scans.findAll({ companyId: companyId || null });
+
+  // Get company name for filename
+  let companyName = 'All';
+  if (companyId) {
+    const company = await db.companies.findById(companyId);
+    if (company) companyName = company.name.replace(/[^a-zA-Z0-9]/g, '_');
+  }
 
   // Helper function to format date in GMT+7
   const formatToGMT7 = (dateValue) => {
+    if (!dateValue) return { date: '', time: '' };
     const date = new Date(dateValue);
+    if (isNaN(date.getTime())) return { date: '', time: '' };
     // Add 7 hours to convert from UTC to GMT+7
     const gmt7Date = new Date(date.getTime() + (7 * 60 * 60 * 1000));
     const day = String(gmt7Date.getUTCDate()).padStart(2, '0');
@@ -646,16 +627,16 @@ app.get('/admin/export.xlsx', requireRole('admin'), async (req, res) => {
   const data = rows.map((s) => {
     const datetime = formatToGMT7(s.created_at);
     return {
-      'ID': s.id,
-      'Full Name': s.full_name_snapshot,
-      'Job Title': s.job_title_snapshot,
-      'Employee ID': s.employee_id_snapshot,
+      'Company': s.company_name_snapshot || '',
+      'Full Name': s.full_name_snapshot || '',
+      'Job Title': s.job_title_snapshot || '',
+      'Employee ID': s.employee_id_snapshot || '',
       'Type': s.type || '',
+      'Date (GMT+7)': datetime.date,
+      'Time (GMT+7)': datetime.time,
       'Latitude': s.lat ?? '',
       'Longitude': s.lng ?? '',
       'Accuracy': s.accuracy ?? '',
-      'Date (GMT+7)': datetime.date,
-      'Time (GMT+7)': datetime.time,
     };
   });
 
@@ -665,16 +646,16 @@ app.get('/admin/export.xlsx', requireRole('admin'), async (req, res) => {
 
   // Set column widths for better readability
   worksheet['!cols'] = [
-    { wch: 20 },  // ID
+    { wch: 20 },  // Company
     { wch: 25 },  // Full Name
     { wch: 20 },  // Job Title
     { wch: 15 },  // Employee ID
     { wch: 12 },  // Type
+    { wch: 15 },  // Date (GMT+7)
+    { wch: 12 },  // Time (GMT+7)
     { wch: 12 },  // Latitude
     { wch: 12 },  // Longitude
     { wch: 10 },  // Accuracy
-    { wch: 15 },  // Date (GMT+7)
-    { wch: 12 },  // Time (GMT+7)
   ];
 
   // Add worksheet to workbook
@@ -688,7 +669,7 @@ app.get('/admin/export.xlsx', requireRole('admin'), async (req, res) => {
   const day = String(now.getDate()).padStart(2, '0');
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const year = now.getFullYear();
-  const filename = `Attendance_${day}-${month}-${year}.xlsx`;
+  const filename = `Attendance_${companyName}_${day}-${month}-${year}.xlsx`;
 
   // Send response
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

@@ -14,26 +14,12 @@
        Company Selection View
        ========================================= -->
   <div id="companyView" class="view active">
-      <div class="company-container">
+    <div class="company-container">
       <div class="company-header">
+        <div class="greeting-line" id="adminGreeting">Hi, Admin</div>
         <h1>Select Company</h1>
         <p>Choose a company to view its attendance dashboard</p>
-        <div class="admin-banner">
-          <div class="admin-avatar" id="adminBannerAvatar">
-            <span id="adminBannerInitial">A</span>
-          </div>
-          <div class="admin-banner-body">
-            <div class="admin-banner-top">
-              <div class="admin-banner-name" id="adminGreeting">Hi, Admin</div>
-              <span class="role-chip">Admin</span>
-            </div>
-            <div class="admin-banner-meta-row">
-              <span class="meta-pill" id="adminBannerId">Employee ID: -</span>
-              <span class="meta-pill" id="adminBannerJob">Job title</span>
-            </div>
-          </div>
-        </div>
-        <button class="secondary" onclick="logout()" style="margin-top: 16px; padding: 8px 24px;">Logout</button>
+        <button class="text-btn" onclick="logout()">Logout</button>
       </div>
 
       <div id="companyGrid" class="company-grid">

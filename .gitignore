@@ -1,8 +1,10 @@
 # Server secrets
 server/.env
 server/firebase-service-account.json
+server/scripts/import-data.js
 
 # Node modules (server)
 server/node_modules
 
 .agent
+

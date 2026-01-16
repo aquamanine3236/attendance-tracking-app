@@ -52,12 +52,12 @@ class DemoScannerApp extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF1E7BFF),
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(6),
             ),
             textStyle: const TextStyle(
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -66,15 +66,15 @@ class DemoScannerApp extends StatelessWidget {
           filled: true,
           fillColor: const Color(0xFF0F1626),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(6),
             borderSide: const BorderSide(color: Color(0xFF1C2637)),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(6),
             borderSide: const BorderSide(color: Color(0xFF1C2637)),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(6),
             borderSide: const BorderSide(color: Color(0xFF1E7BFF), width: 2),
           ),
           labelStyle: const TextStyle(color: Color(0xFF9FB3D9)),
@@ -82,9 +82,9 @@ class DemoScannerApp extends StatelessWidget {
         ),
         cardTheme: CardThemeData(
           color: const Color(0xFF111A33),
-          elevation: 8,
+          elevation: 4,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(6),
             side: const BorderSide(color: Color(0xFF1C2637)),
           ),
         ),

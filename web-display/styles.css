@@ -20,9 +20,6 @@ body {
     margin: 0;
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     background: var(--bg-primary);
-    background-image:
-        radial-gradient(circle at 20% 50%, rgba(30, 123, 255, 0.08) 0%, transparent 50%),
-        radial-gradient(circle at 80% 50%, rgba(159, 205, 255, 0.05) 0%, transparent 50%);
     color: var(--text-primary);
     min-height: 100vh;
     display: flex;
@@ -83,37 +80,38 @@ body {
 
 .company-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
 }
 
 .company-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 28px;
+    border-radius: 6px;
+    padding: 12px 16px;
     cursor: pointer;
-    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    transition: border-color 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .company-card:hover {
-    transform: translateY(-4px);
     border-color: var(--accent-blue);
-    box-shadow: 0 12px 40px rgba(30, 123, 255, 0.15);
 }
 
 .company-logo {
-    width: 56px;
-    height: 56px;
-    background: linear-gradient(135deg, var(--accent-blue), #3d8bff);
-    border-radius: 12px;
+    width: 36px;
+    height: 36px;
+    background: rgba(30, 123, 255, 0.15);
+    border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
-    font-weight: 700;
-    color: white;
-    margin-bottom: 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    flex-shrink: 0;
     overflow: hidden;
 }
 
@@ -131,52 +129,55 @@ body {
     height: 100%;
 }
 
+.company-card-content {
+    flex: 1;
+    min-width: 0;
+}
+
 .company-name {
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 600;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .company-info {
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: 12px;
 }
 
 /* Main Card */
 #card {
     background: var(--bg-card);
-    padding: 40px 48px;
-    border-radius: 24px;
-    box-shadow:
-        0 20px 60px rgba(0, 0, 0, 0.5),
-        0 0 80px rgba(30, 123, 255, 0.1);
+    padding: 32px 40px;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     text-align: center;
-    max-width: 520px;
+    max-width: 480px;
     width: 100%;
     border: 1px solid var(--border-color);
 }
 
 .pill {
     display: inline-block;
-    padding: 6px 14px;
-    border-radius: 999px;
-    background: linear-gradient(135deg, #1f2b4d, #2a3f6d);
+    padding: 4px 12px;
+    border-radius: 4px;
+    background: rgba(30, 123, 255, 0.15);
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 h1 {
-    margin: 16px 0 8px;
-    font-size: 32px;
+    margin: 12px 0 8px;
+    font-size: 28px;
     font-weight: 700;
-    background: linear-gradient(135deg, #fff, #9fcdff);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--text-primary);
 }
 
 /* Location Name */
@@ -199,12 +200,12 @@ h1 {
 .qr-container {
     position: relative;
     display: inline-block;
-    padding: 20px;
+    padding: 16px;
     background: white;
-    border-radius: 20px;
-    margin-bottom: 28px;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    transition: opacity 0.2s ease;
 }
 
 .qr-container.updating {
