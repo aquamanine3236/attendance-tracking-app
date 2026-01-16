@@ -21,28 +21,133 @@ End-to-end QR attendance logging with a Node/Express backend backed by Firebase 
 - Flutter 3.10+ with Android/iOS tooling (for `scanner_app`)
 - Modern browser for the web apps
 
-## Setup and running
+## Quick Start
+
+```bash
+# 1. Clone the repository
+git clone <repository-url>
+cd attendance-tracking-app
+
+# 2. Setup and start the server
+cd server
+cp .env.example .env        # Edit .env with your Firebase credentials
+npm install
+npm run dev                  # Development mode with auto-reload
+
+# 3. Open web clients in browser
+# Admin Dashboard: http://localhost:4000/admin/
+# QR Display:      http://localhost:4000/display/
+
+# 4. Setup and run the mobile scanner (in a new terminal)
+cd scanner_app
+flutter pub get
+flutter run
+```
+
+## Setup and Running
+
 ### 1) Backend (`server/`)
-1. Copy env template: `cp server/.env.example server/.env` and set values:
-   - `FIREBASE_SERVICE_ACCOUNT` path to your real service account JSON (place it as `server/firebase-service-account.json` or point elsewhere).
-   - `QR_SECRET`, `QR_TTL_SECONDS`, and `ADMIN_JWT`/`DISPLAY_JWT`/`USER_JWT` demo tokens used by the clients.
-   - `ALLOW_MULTI_SCAN=true` if you want to allow reusing the same QR in tests.
-2. Install deps: `cd server && npm install`.
-3. Seed optional sample data: edit `server/scripts/import-data.js` with your companies/users (passwords are plain text) and run `node scripts/import-data.js`.
-4. Start the API: `npm run dev` (reload) or `npm start`. The server also serves the web clients at `/admin` and `/display`.
 
-### 2) Web clients
-- **Admin dashboard**: open `http://localhost:4000/admin/`, log in with a Firestore user where `role === "admin"`, pick a company, watch scans live, generate QR, and export via CSV/XLSX. Filters include date, type, and search.
-- **QR display**: open `http://localhost:4000/display/`, pick a company, and keep it on-screen. It auto-refreshes on `qr:new` and shows 'scanned' feedback. Buttons: refresh QR and download PNG.  
-  URL params override defaults: `?companyId=...&company=Name&token=<display-token>&api=http://host:4000`.
+**Step 1: Configure environment**
+```bash
+cd server
+cp .env.example .env
+```
 
-### 3) Mobile scanner (`scanner_app/`)
-1. `cd scanner_app && flutter pub get`
-2. Ensure the app can reach your API:
-   - Defaults in `lib/services/api_service.dart` try `https://testchamcong.merlinle.com`, then `10.0.2.2:4000`, `localhost:4000`, `127.0.0.1:4000`.
-   - For devices on your LAN, set the first entry to your host IP (for example `http://192.168.x.x:4000`).
-3. Run on a device/emulator: `flutter run`.
-4. Log in with an employee account (`role === "employee"`), grant location permission, pick **Check In** or **Check Out**, and scan the on-screen QR. If the camera cannot scan, the app can decode a QR from an uploaded image.
+Edit `.env` and set the following values:
+- `FIREBASE_SERVICE_ACCOUNT`: Path to your service account JSON (e.g., `./firebase-service-account.json`)
+- `QR_SECRET`: JWT signing secret for QR tokens
+- `QR_TTL_SECONDS`: Token lifetime in seconds
+- `ADMIN_JWT` / `DISPLAY_JWT` / `USER_JWT`: Demo bearer tokens
+- `ALLOW_MULTI_SCAN=true`: Set if you want to allow reusing the same QR in tests
+
+**Step 2: Install dependencies**
+```bash
+npm install
+```
+
+**Step 3: Seed sample data (optional)**
+```bash
+# Edit scripts/import-data.js with your companies/users first
+node scripts/import-data.js
+```
+
+**Step 4: Start the server**
+```bash
+# Development mode (with auto-reload)
+npm run dev
+
+# OR production mode
+npm start
+```
+
+The server runs on `http://localhost:4000` and serves web clients at `/admin` and `/display`.
+
+---
+
+### 2) Web Clients
+
+**Admin Dashboard**
+```
+URL: http://localhost:4000/admin/
+```
+- Log in with a Firestore user where `role === "admin"`
+- Pick a company, watch scans live, generate QR, and export via CSV/XLSX
+- Filters include date, type, and search
+
+**QR Display**
+```
+URL: http://localhost:4000/display/
+```
+- Pick a company and keep it on-screen
+- Auto-refreshes on `qr:new` and shows 'scanned' feedback
+- Buttons: refresh QR and download PNG
+
+Optional URL parameters:
+```
+http://localhost:4000/display/?companyId=...&company=Name&token=<display-token>&api=http://host:4000
+```
+
+---
+
+### 3) Mobile Scanner (`scanner_app/`)
+
+**Step 1: Install dependencies**
+```bash
+cd scanner_app
+flutter pub get
+```
+
+**Step 2: Configure API endpoint**
+
+Edit `lib/services/api_service.dart` if needed. Default endpoints:
+- `https://testchamcong.merlinle.com`
+- `10.0.2.2:4000` (Android emulator)
+- `localhost:4000`
+- `127.0.0.1:4000`
+
+For devices on your LAN, update to your host IP:
+```dart
+// Example: http://192.168.x.x:4000
+```
+
+**Step 3: Run the app**
+```bash
+# Run on connected device or emulator
+flutter run
+
+# Run on specific device
+flutter run -d <device-id>
+
+# List available devices
+flutter devices
+```
+
+**Step 4: Use the app**
+- Log in with an employee account (`role === "employee"`)
+- Grant location permission
+- Pick **Check In** or **Check Out**
+- Scan the on-screen QR (or upload an image if camera can't scan)
 
 ## Configuration reference (`server/.env`)
 - `PORT`: HTTP port (default 4000)  
