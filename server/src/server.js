@@ -218,6 +218,7 @@ app.post('/auth/login', async (req, res) => {
         company: company ? {
           id: company.id,
           name: company.name,
+          logo: company.logo || null,
         } : null,
       },
       token: TOKEN_MAP.user, // Use the demo token for now
@@ -276,11 +277,12 @@ app.post('/auth/admin/login', async (req, res) => {
       user: {
         id: user.id,
         fullName: user.full_name,
+        employeeId: user.employee_id,
+        jobTitle: user.job_title || '',
+        avatar: user.avatar || null,
         companyIds,
-        company: company ? {
-          id: company.id,
-          name: company.name,
-        } : null,
+        company: company ? company.name : null,
+        companyLogo: company ? company.logo || null : null,
       },
       token: TOKEN_MAP.admin,
     });

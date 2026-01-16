@@ -56,6 +56,7 @@ if (!sessionStorage.getItem('adminLoggedIn') && window.location.pathname.include
     window.location.href = 'index.html';
 }
 
+const adminUser = JSON.parse(sessionStorage.getItem('adminUser') || '{}');
 const params = new URLSearchParams(location.search);
 // Use stored token from login, fallback to query param or demo token
 const ADMIN_TOKEN = sessionStorage.getItem('adminToken') || params.get('token') || 'demo-admin-token';
@@ -69,12 +70,10 @@ function logout() {
     if (!confirm('Are you sure you want to log out?')) {
         return;
     }
-    sessionStorage.removeItem('adminLoggedIn');
-    sessionStorage.removeItem('adminToken');
-    sessionStorage.removeItem('adminUser');
-    sessionStorage.removeItem('selectedCompanyId');
-    sessionStorage.removeItem('selectedCompanyName');
-    window.location.href = 'index.html';
+    // Clear all session storage for clean logout
+    sessionStorage.clear();
+    // Redirect to login page (use absolute path for static file server)
+    window.location.href = '/web-admin/index.html';
 }
 
 function formatTime(dateLike) {
@@ -96,6 +95,58 @@ function showView(viewId) {
 }
 
 // ==========================================================================
+// Admin Identity Rendering
+// ==========================================================================
+
+function setTextContent(id, value) {
+    const el = document.getElementById(id);
+    if (el && typeof value === 'string') {
+        el.textContent = value;
+    }
+}
+
+function renderAvatar(containerId, initialId, imageUrl, fallbackInitial) {
+    const container = document.getElementById(containerId);
+    const initialEl = document.getElementById(initialId);
+    if (!container || !initialEl) return;
+
+    const hasImage = typeof imageUrl === 'string' && imageUrl.trim().length > 3;
+    if (hasImage) {
+        container.style.backgroundImage = `url('${imageUrl}')`;
+        container.classList.add('with-photo');
+        initialEl.textContent = '';
+    } else {
+        container.style.backgroundImage = 'none';
+        container.classList.remove('with-photo');
+        initialEl.textContent = fallbackInitial;
+    }
+}
+
+function renderAdminProfile() {
+    const nameSource = adminUser.fullName || adminUser.full_name || 'Admin';
+    const displayName = typeof nameSource === 'string' && nameSource.trim()
+        ? nameSource.trim()
+        : 'Admin';
+    const employeeId = adminUser.employeeId || adminUser.employee_id || '—';
+    const jobTitle = adminUser.jobTitle || adminUser.job_title || 'Admin';
+    const avatar = adminUser.avatar || '';
+    const initial = displayName.charAt(0).toUpperCase();
+
+    setTextContent('adminGreeting', `Hi, ${displayName}`);
+    setTextContent('adminBannerId', `Employee ID: ${employeeId}`);
+    setTextContent('adminBannerJob', jobTitle);
+    setTextContent('adminBannerInitial', initial);
+
+    setTextContent('adminHeaderName', displayName);
+    setTextContent('adminHeaderEmployeeId', `ID ${employeeId}`);
+    setTextContent('adminHeaderJobTitle', jobTitle);
+    setTextContent('adminHeaderInitial', initial);
+
+    renderAvatar('adminBannerAvatar', 'adminBannerInitial', avatar, initial);
+    renderAvatar('adminHeaderAvatar', 'adminHeaderInitial', avatar, initial);
+}
+
+// ==========================================================================
 // Company Selection
 // ==========================================================================
 
@@ -112,7 +163,15 @@ async function loadCompanies() {
             API = await resolveApi();
         }
 
-        const res = await fetch(`${API}/admin/companies`, {
+        // Get admin's allowed company IDs from session storage
+        const companyIds = adminUser.companyIds || [];
+
+        let url = `${API}/admin/companies`;
+        if (companyIds.length > 0) {
+            url += `?companyIds=${encodeURIComponent(companyIds.join(','))}`;
+        }
+
+        const res = await fetch(url, {
             headers: { Authorization: `Bearer ${ADMIN_TOKEN}` }
         });
 
@@ -212,11 +271,18 @@ async function initDashboard() {
             updateConnectionStatus(false);
         });
 
-        socket.on('ready', loadInitial);
+        socket.on('ready', () => {
+            console.log('Socket ready, admin connected');
+        });
 
         socket.on('scan:logged', (scan) => {
             // Only add scan if it matches the current company
             if (scan.companyId === CompanyContext.companyId) {
+                // Deduplicate: check if scan with same ID already exists
+                if (scans.some(s => s.id === scan.id)) {
+                    console.log('Duplicate scan ignored:', scan.id);
+                    return;
+                }
                 scan._isNew = true;
                 scans = [scan, ...scans];
                 applyFilters();
@@ -511,5 +577,6 @@ if (addLocationBtnEl) addLocationBtnEl.style.display = 'none';
 // Initialization
 // ==========================================================================
 
+renderAdminProfile();
 // Load companies from API on page load
 loadCompanies();

@@ -79,12 +79,21 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true) {
+          // Parse companyIds array from response
+          final List<String> companyIds =
+              (data['user']['companyIds'] as List<dynamic>?)
+                      ?.map((e) => e.toString())
+                      .toList() ??
+                  [];
+
           return LoginResult.success(
             fullName: data['user']['fullName'] ?? '',
             employeeId: data['user']['employeeId'] ?? '',
             jobTitle: data['user']['jobTitle'] ?? '',
+            companyIds: companyIds,
             companyId: data['user']['company']?['id'],
             companyName: data['user']['company']?['name'],
+            companyLogo: data['user']['company']?['logo'],
             avatar: data['user']['avatar'],
             token: data['token'],
           );
@@ -197,8 +206,10 @@ class LoginResult {
   final String? fullName;
   final String? employeeId;
   final String? jobTitle;
-  final String? companyId;
+  final List<String> companyIds; // User's allowed company IDs
+  final String? companyId; // First company ID for backward compatibility
   final String? companyName;
+  final String? companyLogo;
   final String? avatar;
   final String? token;
 
@@ -208,8 +219,10 @@ class LoginResult {
     this.fullName,
     this.employeeId,
     this.jobTitle,
+    this.companyIds = const [],
     this.companyId,
     this.companyName,
+    this.companyLogo,
     this.avatar,
     this.token,
   });
@@ -218,8 +231,10 @@ class LoginResult {
     required String fullName,
     required String employeeId,
     required String jobTitle,
+    List<String> companyIds = const [],
     String? companyId,
     String? companyName,
+    String? companyLogo,
     String? avatar,
     String? token,
   }) {
@@ -228,8 +243,10 @@ class LoginResult {
       fullName: fullName,
       employeeId: employeeId,
       jobTitle: jobTitle,
+      companyIds: companyIds,
       companyId: companyId,
       companyName: companyName,
+      companyLogo: companyLogo,
       avatar: avatar,
       token: token,
     );

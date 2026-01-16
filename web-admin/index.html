@@ -210,8 +210,8 @@
                     sessionStorage.setItem('adminLoggedIn', 'true');
                     sessionStorage.setItem('adminToken', data.token);
                     sessionStorage.setItem('adminUser', JSON.stringify(data.user));
-                    // Redirect to dashboard
-                    window.location.href = 'dashboard.html';
+                    // Redirect to dashboard (use absolute path for static file server)
+                    window.location.href = '/web-admin/dashboard.html';
                 } else {
                     // Show error
                     showError(data.error || 'Login failed');

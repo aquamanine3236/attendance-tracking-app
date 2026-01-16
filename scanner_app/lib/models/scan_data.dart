@@ -11,6 +11,8 @@ class ScanData {
   final double? lng;
   final double? accuracy;
   final String? imageData;
+  final List<String>?
+      userCompanyIds; // User's allowed company IDs for validation
 
   ScanData({
     required this.token,
@@ -22,6 +24,7 @@ class ScanData {
     this.lng,
     this.accuracy,
     this.imageData,
+    this.userCompanyIds,
   });
 
   Map<String, dynamic> toJson() {
@@ -35,6 +38,8 @@ class ScanData {
       if (lng != null) 'lng': lng,
       if (accuracy != null) 'accuracy': accuracy,
       if (imageData != null) 'imageData': imageData,
+      if (userCompanyIds != null && userCompanyIds!.isNotEmpty)
+        'userCompanyIds': userCompanyIds,
     };
   }
 }

@@ -14,10 +14,12 @@ import '../services/api_service.dart';
 class CompanyData {
   final String companyId;
   final String companyName;
+  final String? logo;
 
   const CompanyData({
     required this.companyId,
     required this.companyName,
+    this.logo,
   });
 }
 
@@ -27,6 +29,7 @@ class UserData {
   final String employeeId;
   final String jobTitle;
   final String? avatar;
+  final List<String> companyIds; // User's allowed company IDs
   final CompanyData? company;
 
   const UserData({
@@ -34,6 +37,7 @@ class UserData {
     required this.employeeId,
     required this.jobTitle,
     this.avatar,
+    this.companyIds = const [],
     this.company,
   });
 }
@@ -100,10 +104,12 @@ class _LoginScreenState extends State<LoginScreen> {
         employeeId: result.employeeId ?? '',
         jobTitle: result.jobTitle ?? '',
         avatar: result.avatar,
+        companyIds: result.companyIds,
         company: result.companyId != null
             ? CompanyData(
                 companyId: result.companyId!,
                 companyName: result.companyName ?? '',
+                logo: result.companyLogo,
               )
             : null,
       );

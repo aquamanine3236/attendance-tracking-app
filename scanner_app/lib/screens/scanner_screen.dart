@@ -74,8 +74,11 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Extract first name for greeting
-    final firstName = widget.userData.fullName.split(' ').first;
+    // Extract preferred given name (use last token for better VN names)
+    final parts =
+        widget.userData.fullName.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    final firstName = parts.isNotEmpty ? parts.last : widget.userData.fullName;
+    final company = widget.userData.company;
 
     return Scaffold(
       appBar: AppBar(
@@ -117,8 +120,11 @@ class _ScannerScreenState extends State<ScannerScreen> {
                 ),
               );
               if (shouldLogout == true && context.mounted) {
-                Navigator.of(context).pushReplacement(
+                // Clear navigation stack and go to fresh login screen
+                // This ensures ApiService is recreated with no cached user state
+                Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  (route) => false,
                 );
               }
             },
@@ -137,6 +143,103 @@ class _ScannerScreenState extends State<ScannerScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Company card (moved up)
+                  if (company != null) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0E152A),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF1C2637)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 46,
+                            height: 46,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF112040),
+                              shape: BoxShape.circle,
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: company.logo != null &&
+                                    company.logo!.isNotEmpty
+                                ? Image.network(
+                                    company.logo!,
+                                    fit: BoxFit.cover,
+                                  )
+                                : Icon(
+                                    Icons.domain,
+                                    size: 22,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                  ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Company',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    letterSpacing: 0.3,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .secondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  company.companyName,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                  if (company == null) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0E152A),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF1C2637)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 18,
+                            color: Colors.orange.shade300,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'No company assigned to this account yet.',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.secondary,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
                   // Profile Row
                   Row(
                     children: [
@@ -162,7 +265,9 @@ class _ScannerScreenState extends State<ScannerScreen> {
                                 errorBuilder: (context, error, stackTrace) {
                                   return Center(
                                     child: Text(
-                                      firstName[0].toUpperCase(),
+                                      firstName.isNotEmpty
+                                          ? firstName[0].toUpperCase()
+                                          : '?',
                                       style: TextStyle(
                                         fontSize: 22,
                                         fontWeight: FontWeight.bold,
@@ -176,7 +281,9 @@ class _ScannerScreenState extends State<ScannerScreen> {
                               )
                             : Center(
                                 child: Text(
-                                  firstName[0].toUpperCase(),
+                                  firstName.isNotEmpty
+                                      ? firstName[0].toUpperCase()
+                                      : '?',
                                   style: TextStyle(
                                     fontSize: 22,
                                     fontWeight: FontWeight.bold,
@@ -228,7 +335,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 18),
 
                   // Location status
                   if (_isLoadingLocation)
@@ -459,6 +566,7 @@ class _QrScannerViewState extends State<QrScannerView> {
       lat: location.latitude,
       lng: location.longitude,
       accuracy: location.accuracy,
+      userCompanyIds: widget.userData.companyIds,
     );
 
     final result = await widget.apiService.submitScan(scanData);
