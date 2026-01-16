@@ -85,6 +85,7 @@ class ApiService {
             jobTitle: data['user']['jobTitle'] ?? '',
             companyId: data['user']['company']?['id'],
             companyName: data['user']['company']?['name'],
+            avatar: data['user']['avatar'],
             token: data['token'],
           );
         }
@@ -198,6 +199,7 @@ class LoginResult {
   final String? jobTitle;
   final String? companyId;
   final String? companyName;
+  final String? avatar;
   final String? token;
 
   LoginResult._({
@@ -208,6 +210,7 @@ class LoginResult {
     this.jobTitle,
     this.companyId,
     this.companyName,
+    this.avatar,
     this.token,
   });
 
@@ -217,6 +220,7 @@ class LoginResult {
     required String jobTitle,
     String? companyId,
     String? companyName,
+    String? avatar,
     String? token,
   }) {
     return LoginResult._(
@@ -226,6 +230,7 @@ class LoginResult {
       jobTitle: jobTitle,
       companyId: companyId,
       companyName: companyName,
+      avatar: avatar,
       token: token,
     );
   }

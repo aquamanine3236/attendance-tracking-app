@@ -98,10 +98,29 @@ class _ScannerScreenState extends State<ScannerScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
+            onPressed: () async {
+              final shouldLogout = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Log Out'),
+                  content: const Text('Are you sure you want to log out?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: const Text('Log Out'),
+                    ),
+                  ],
+                ),
               );
+              if (shouldLogout == true && context.mounted) {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                );
+              }
             },
             tooltip: 'Logout',
           ),
@@ -132,16 +151,40 @@ class _ScannerScreenState extends State<ScannerScreen> {
                               .withAlpha(40),
                           shape: BoxShape.circle,
                         ),
-                        child: Center(
-                          child: Text(
-                            firstName[0].toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          ),
-                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: widget.userData.avatar != null &&
+                                widget.userData.avatar!.isNotEmpty
+                            ? Image.network(
+                                widget.userData.avatar!,
+                                fit: BoxFit.cover,
+                                width: 52,
+                                height: 52,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Center(
+                                    child: Text(
+                                      firstName[0].toUpperCase(),
+                                      style: TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              )
+                            : Center(
+                                child: Text(
+                                  firstName[0].toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                              ),
                       ),
                       const SizedBox(width: 14),
                       // Name and Employee ID

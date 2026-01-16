@@ -2,7 +2,6 @@
  * Enhanced QR Display
  * 
  * Features:
- * - Company selection with multi-company support
  * - Fixed location display with permanent QR codes
  * - Location name prominently displayed
  * - QR generation timestamp (no countdown/TTL)
@@ -11,145 +10,15 @@
  * - Download QR functionality
  */
 
-// ==========================================================================
-// Company Context Management
-// ==========================================================================
-
-const CompanyContext = {
-    get companyId() {
-        return sessionStorage.getItem('displayCompanyId');
-    },
-
-    set companyId(id) {
-        sessionStorage.setItem('displayCompanyId', id);
-    },
-
-    get companyName() {
-        return sessionStorage.getItem('displayCompanyName');
-    },
-
-    set companyName(name) {
-        sessionStorage.setItem('displayCompanyName', name);
-    },
-
-    clear() {
-        sessionStorage.removeItem('displayCompanyId');
-        sessionStorage.removeItem('displayCompanyName');
-    },
-
-    isSelected() {
-        return !!this.companyId;
-    }
-};
-
-// ==========================================================================
-// Companies (loaded from API)
-// ==========================================================================
-
-let companies = [];
-
-// ==========================================================================
-// View Management
-// ==========================================================================
-
-function showView(viewId) {
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.getElementById(viewId).classList.add('active');
-}
-
-// ==========================================================================
-// Company Selection
-// ==========================================================================
-
-async function loadCompanies() {
-    const grid = document.getElementById('companyGrid');
-    if (!grid) return;
-
-    // Show loading state
-    grid.innerHTML = '<div class="loading-state">Loading companies...</div>';
-
-    try {
-        // Need to resolve API first
-        if (!API) {
-            API = await resolveApi();
-        }
-
-        const res = await fetch(`${API}/api/companies`, {
-            headers: { Authorization: `Bearer ${DISPLAY_TOKEN}` }
-        });
-
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const data = await res.json();
-        companies = data.data || [];
-        renderCompanyGrid();
-    } catch (err) {
-        console.error('Failed to load companies:', err);
-        grid.innerHTML = '<div class="empty-state">Failed to load companies. Please refresh.</div>';
-    }
-}
-
-function renderCompanyGrid() {
-    const grid = document.getElementById('companyGrid');
-    if (!grid) {
-        console.error('companyGrid element not found!');
-        return;
-    }
-
-    if (companies.length === 0) {
-        grid.innerHTML = '<div class="empty-state">No companies found.</div>';
-        return;
-    }
-
-    grid.innerHTML = companies.map(company => `
-    <div class="company-card" onclick="selectCompany('${company.id}', '${company.name}', '${company.location || ''}')">
-      <div class="company-logo">${company.logo || company.name?.charAt(0) || '?'}</div>
-      <div class="company-name">${company.name}</div>
-      <div class="company-info">${company.location || ''}</div>
-    </div>
-  `).join('');
-}
-
-function selectCompany(id, name, location) {
-    CompanyContext.companyId = id;
-    CompanyContext.companyName = name;
-    document.getElementById('locationName').textContent = name;
-    showView('qrView');
-    initQrDisplay();
-}
-
-function goBackToCompanySelection() {
-    // Clear company context
-    CompanyContext.clear();
-    // Show company selection view
-    showView('companyView');
-    // Clear URL parameters by reloading without them
-    if (window.location.search) {
-        window.location.href = window.location.pathname;
-    }
-}
-
-// ==========================================================================
-// State
-// ==========================================================================
-
 const params = new URLSearchParams(location.search);
 const DISPLAY_TOKEN = params.get('token') || 'demo-display-token';
-// displayId is now company-specific for isolation
-function getDisplayId() {
-    const companyId = CompanyContext.companyId || params.get('companyId') || 'default';
-    return `display-${companyId}`;
-}
-let companyName = params.get('company') || CompanyContext.companyName || 'ABC Corporation';
+const displayId = params.get('displayId') || 'default-display';
+const companyName = params.get('company') || 'ABC Corporation';
 let API;
 let currentQrData = null;
 
-function formatTime(dateLike) {
-    const date = new Date(dateLike);
-    const pad = (n) => n.toString().padStart(2, '0');
-    // Force 24-hour clock regardless of browser locale
-    return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-}
+// Set company/location name from URL params
+document.getElementById('locationName').textContent = companyName;
 
 // ==========================================================================
 // API Resolution
@@ -178,13 +47,7 @@ async function resolveApi() {
 async function fetchNewQr() {
     try {
         showLoading();
-        // Include companyId in the request so QR is associated with the company
-        const currentCompanyId = CompanyContext.companyId || '';
-        let url = `${API}/display/qr/current?displayId=${encodeURIComponent(getDisplayId())}`;
-        if (currentCompanyId) {
-            url += `&companyId=${encodeURIComponent(currentCompanyId)}`;
-        }
-        const res = await fetch(url, {
+        const res = await fetch(`${API}/display/qr/current?displayId=${encodeURIComponent(displayId)}`, {
             headers: { 'Authorization': `Bearer ${DISPLAY_TOKEN}` }
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -192,6 +55,7 @@ async function fetchNewQr() {
         setQr(data);
     } catch (err) {
         document.getElementById('status').textContent = `QR fetch failed: ${err.message}`;
+        document.getElementById('generatedAt').textContent = '—';
         hideLoading();
     }
 }
@@ -221,6 +85,15 @@ function setQr(data, animate = false) {
     downloadBtn.style.display = 'flex';
 
     document.getElementById('status').textContent = 'Awaiting scan...';
+
+    // Show generation timestamp (not expiry countdown)
+    const generatedTime = new Date(data.createdAt || Date.now());
+    document.getElementById('generatedAt').textContent = generatedTime.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+    });
 }
 
 function showLoading() {
@@ -236,7 +109,7 @@ function hideLoading() {
 function showScannedFeedback(timestamp) {
     const overlay = document.getElementById('qrOverlay');
     overlay.classList.add('visible');
-    document.getElementById('status').textContent = `Scanned at ${formatTime(timestamp)}`;
+    document.getElementById('status').textContent = `Scanned at ${new Date(timestamp).toLocaleTimeString()}`;
 
     // Auto-request new QR after brief delay (since QR is consumed)
     // The new QR will be sent via WebSocket
@@ -267,7 +140,7 @@ function downloadQr() {
 
     // Create filename with location and timestamp
     const timestamp = new Date().toISOString().split('T')[0];
-    const safeName = companyName.replace(/[^a-zA-Z0-9]/g, '_');
+    const safeName = locationName.replace(/[^a-zA-Z0-9]/g, '_');
     link.download = `qr-${safeName}-${timestamp}.png`;
 
     document.body.appendChild(link);
@@ -299,20 +172,16 @@ document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscr
 // Initialization
 // ==========================================================================
 
-async function initQrDisplay() {
+(async () => {
     try {
         API = await resolveApi();
-
-        // Update company name from context
-        companyName = CompanyContext.companyName || companyName;
-        document.getElementById('locationName').textContent = companyName;
 
         // Fetch initial QR
         await fetchNewQr();
 
-        // Initialize Socket.IO with company-specific displayId
+        // Initialize Socket.IO
         const socket = io(API, {
-            query: { role: 'display', token: DISPLAY_TOKEN, displayId: getDisplayId() },
+            query: { role: 'display', token: DISPLAY_TOKEN, displayId },
             transports: ['websocket'],
             reconnectionAttempts: 10,
         });
@@ -349,28 +218,4 @@ async function initQrDisplay() {
         hideLoading();
         updateConnectionStatus(false);
     }
-}
-
-// Page initialization
-(function init() {
-    // Check if company is specified via URL parameter
-    const urlCompany = params.get('company');
-    const urlCompanyId = params.get('companyId');
-
-    if (urlCompany) {
-        // Direct access with company parameter - skip selection
-        companyName = urlCompany;
-        if (urlCompanyId) {
-            CompanyContext.companyId = urlCompanyId;
-            CompanyContext.companyName = urlCompany;
-        }
-        document.getElementById('locationName').textContent = companyName;
-        showView('qrView');
-        initQrDisplay();
-    } else {
-        // Load companies from API
-        loadCompanies();
-        // companyView is already active by default in HTML
-    }
 })();
-

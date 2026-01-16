@@ -66,6 +66,9 @@ let socket = null;
 
 // Logout function
 function logout() {
+    if (!confirm('Are you sure you want to log out?')) {
+        return;
+    }
     sessionStorage.removeItem('adminLoggedIn');
     sessionStorage.removeItem('adminToken');
     sessionStorage.removeItem('adminUser');
@@ -138,7 +141,7 @@ function renderCompanyGrid() {
 
     grid.innerHTML = companies.map(company => `
     <div class="company-card" onclick="selectCompany('${company.id}', '${company.name}')">
-      <div class="company-logo">${company.logo || company.name?.charAt(0) || '?'}</div>
+      <div class="company-logo">${company.logo ? `<img src="${company.logo}" alt="${company.name} logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" /><span class="logo-fallback" style="display:none;">${company.name?.charAt(0) || '?'}</span>` : company.name?.charAt(0) || '?'}</div>
       <div class="company-name">${company.name}</div>
       <div class="company-info">${company.employeeCount || 0} employees</div>
     </div>

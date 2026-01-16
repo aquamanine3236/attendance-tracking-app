@@ -26,12 +26,14 @@ class UserData {
   final String fullName;
   final String employeeId;
   final String jobTitle;
+  final String? avatar;
   final CompanyData? company;
 
   const UserData({
     required this.fullName,
     required this.employeeId,
     required this.jobTitle,
+    this.avatar,
     this.company,
   });
 }
@@ -97,6 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
         fullName: result.fullName ?? '',
         employeeId: result.employeeId ?? '',
         jobTitle: result.jobTitle ?? '',
+        avatar: result.avatar,
         company: result.companyId != null
             ? CompanyData(
                 companyId: result.companyId!,
