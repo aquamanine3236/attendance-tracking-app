@@ -195,8 +195,12 @@ app.post('/auth/login', async (req, res) => {
       return res.status(403).json({ error: 'Access denied. Employee account required.' });
     }
 
-    // Get company info
-    const company = user.company_id ? await db.companies.findById(user.company_id) : null;
+    // Get company IDs (supports new company_ids array)
+    const companyIds = user.company_ids || [];
+
+    // Get first company info for backward compatibility
+    const firstCompanyId = companyIds[0] || null;
+    const company = firstCompanyId ? await db.companies.findById(firstCompanyId) : null;
 
     // Update last login
     await db.users.updateLastLogin(user.id);
@@ -210,6 +214,7 @@ app.post('/auth/login', async (req, res) => {
         employeeId: user.employee_id,
         jobTitle: user.job_title || '',
         avatar: user.avatar || null,
+        companyIds,
         company: company ? {
           id: company.id,
           name: company.name,
@@ -255,8 +260,12 @@ app.post('/auth/admin/login', async (req, res) => {
       return res.status(403).json({ error: 'Access denied. Admin account required.' });
     }
 
-    // Get company info
-    const company = user.company_id ? await db.companies.findById(user.company_id) : null;
+    // Get company IDs (supports new company_ids array)
+    const companyIds = user.company_ids || [];
+
+    // Get first company info for backward compatibility
+    const firstCompanyId = companyIds[0] || null;
+    const company = firstCompanyId ? await db.companies.findById(firstCompanyId) : null;
 
     // Update last login
     await db.users.updateLastLogin(user.id);
@@ -267,6 +276,7 @@ app.post('/auth/admin/login', async (req, res) => {
       user: {
         id: user.id,
         fullName: user.full_name,
+        companyIds,
         company: company ? {
           id: company.id,
           name: company.name,
@@ -323,11 +333,21 @@ app.get('/api/companies', requireAnyRole(['admin', 'display']), async (req, res)
 
 /**
  * Admin: Get all companies (legacy endpoint)
- * GET /admin/companies
+ * GET /admin/companies?companyIds=id1,id2,id3
  */
 app.get('/admin/companies', requireRole('admin'), async (req, res) => {
   try {
-    const companies = await db.companies.findAll();
+    // Parse companyIds from query param (comma-separated)
+    const companyIdsParam = req.query.companyIds;
+    const companyIds = companyIdsParam ? companyIdsParam.split(',').filter(Boolean) : null;
+
+    let companies;
+    if (companyIds && companyIds.length > 0) {
+      companies = await db.companies.findByIds(companyIds);
+    } else {
+      companies = await db.companies.findAll();
+    }
+
     res.json({
       data: companies.map(c => ({
         id: c.id,
@@ -439,6 +459,7 @@ app.post('/scan', requireRole('user'), async (req, res) => {
     lat: z.number({ required_error: 'Location is required' }),
     lng: z.number({ required_error: 'Location is required' }),
     accuracy: z.number({ required_error: 'Location accuracy is required' }),
+    userCompanyIds: z.array(z.string()).optional(), // User's allowed company IDs
     imageData: z
       .string()
       .max(15_000_000, 'image too large')
@@ -451,7 +472,7 @@ app.post('/scan', requireRole('user'), async (req, res) => {
     return res.status(400).json({ error: 'invalid_payload', details: parsed.error.flatten() });
   }
 
-  const { token, fullName, jobTitle, employeeId, type, lat, lng, accuracy, imageData } = parsed.data;
+  const { token, fullName, jobTitle, employeeId, type, lat, lng, accuracy, userCompanyIds, imageData } = parsed.data;
 
   // Validate QR session from database
   const session = await db.qrSessions.findByToken(token);
@@ -460,6 +481,13 @@ app.post('/scan', requireRole('user'), async (req, res) => {
   }
   if (session.status !== 'active' && !ALLOW_MULTI_SCAN) {
     return res.status(409).json({ error: 'already_used' });
+  }
+
+  // Validate user's company access
+  if (session.company_id && userCompanyIds && userCompanyIds.length > 0) {
+    if (!userCompanyIds.includes(session.company_id)) {
+      return res.status(403).json({ error: 'not_authorized_for_company' });
+    }
   }
 
   // Note: QR codes don't expire by time - only when used or replaced
@@ -802,19 +830,10 @@ async function generateQrImage(text) {
 }
 
 // =============================================================================
-// Session Cleanup (expire stale sessions in database)
+// Session Cleanup (disabled - QR codes don't expire by time)
 // =============================================================================
 
-setInterval(async () => {
-  try {
-    const expired = await db.qrSessions.expireOldSessions();
-    if (expired > 0) {
-      console.log(`Expired ${expired} stale QR sessions`);
-    }
-  } catch (err) {
-    console.error('Error expiring sessions:', err);
-  }
-}, 30000);
+// Note: expireOldSessions was removed. QR codes only expire when used or replaced.
 
 // =============================================================================
 // Graceful Shutdown

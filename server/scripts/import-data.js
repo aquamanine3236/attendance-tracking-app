@@ -95,20 +95,20 @@ const users = [
     {
         id: 'a4d9e2c7-8f3b-4a6d-bc21-5e7f91a2d084',
         avatar: 'https://photo.znews.vn/w660/Uploaded/ohunua2/2017_04_10/duong8.jpg',
-        company_id: 'c8f12b6e-3a9d-4f2c-9e71-1b72d9f4a301',
+        company_ids: ['c8f12b6e-3a9d-4f2c-9e71-1b72d9f4a301', 'a3e9d441-6f1c-42a5-bc8e-92f1d3a7b120', 'f0b7c8d2-9e34-4b11-8d22-6a9c1f3e5b90'], // Access to 3 companies
         employee_id: 'NV-NT-0001',
         full_name: 'Nguyễn Minh Quân',
         job_title: 'CTO',
         password_hash: 'admin',
         role: 'admin',
-        username: 'admin.novatech',
+        username: 'quan.nguyen',
         created_at: new Date('2024-06-20T01:30:50Z'),
         last_login_at: new Date('2026-01-14T12:27:39Z'),
     },
     {
         id: 'b5e8f3d9-2c4a-5b7e-cd32-6f8g02b3e195',
         avatar: 'https://iweather.edu.vn/upload/2025/10/gai-xinh-viet-nam-012.webp',
-        company_id: 'c8f12b6e-3a9d-4f2c-9e71-1b72d9f4a301',
+        company_ids: ['c8f12b6e-3a9d-4f2c-9e71-1b72d9f4a301'],
         employee_id: 'NV-NT-0102',
         full_name: 'Trần Thùy Linh',
         job_title: 'Software Engineer',
@@ -122,20 +122,20 @@ const users = [
     {
         id: 'c6f9g4e0-3d5b-6c8f-de43-7g9h13c4f206',
         avatar: 'https://cdn-i.doisongphapluat.com.vn/426/2015/7/19/tuanphong1.jpg',
-        company_id: 'a3e9d441-6f1c-42a5-bc8e-92f1d3a7b120',
+        company_ids: ['a3e9d441-6f1c-42a5-bc8e-92f1d3a7b120'],
         employee_id: 'NV-AP-0001',
         full_name: 'Lê Hoàng Nam',
         job_title: 'Managing Director',
         password_hash: 'admin',
         role: 'admin',
-        username: 'admin.apex',
+        username: 'nam.le',
         created_at: new Date('2024-05-10T02:00:00Z'),
         last_login_at: new Date('2026-01-13T09:30:00Z'),
     },
     {
         id: 'd7g0h5f1-4e6c-7d9g-ef54-8h0i24d5g317',
         avatar: 'https://phunuphapluat.nguoiduatin.vn/uploads/2023/05/21/co-gai-viet-bat-ngo-noi-tieng-nhu-ngoi-sao-nho-cu-day-thi-thanh-cong-nhat-gioi-ten-nho-mot-bien-phap-img-8088-2-1684596457-786-width660height660.jpg',
-        company_id: 'a3e9d441-6f1c-42a5-bc8e-92f1d3a7b120',
+        company_ids: ['a3e9d441-6f1c-42a5-bc8e-92f1d3a7b120', '9d4e1a2f-cc87-4a6f-b9e3-18a7f2d0c611'], // Access to 2 companies
         employee_id: 'NV-AP-0124',
         full_name: 'Nguyễn Thu Hương',
         job_title: 'HR Executive',
@@ -149,20 +149,20 @@ const users = [
     {
         id: 'e8h1i6g2-5f7d-8e0h-fg65-9i1j35e6h428',
         avatar: 'https://image.voh.com.vn/voh/Image/2022/06/30/luan.jpg?t=o',
-        company_id: 'f0b7c8d2-9e34-4b11-8d22-6a9c1f3e5b90',
+        company_ids: ['f0b7c8d2-9e34-4b11-8d22-6a9c1f3e5b90'],
         employee_id: 'NV-MR-0001',
         full_name: 'Phạm Quốc Khánh',
         job_title: 'Operations Director',
         password_hash: 'admin',
         role: 'admin',
-        username: 'admin.meridian',
+        username: 'khanh.pham',
         created_at: new Date('2024-04-01T01:00:00Z'),
         last_login_at: new Date('2026-01-14T10:00:00Z'),
     },
     {
         id: 'f9i2j7h3-6g8e-9f1i-gh76-0j2k46f7i539',
         avatar: 'https://afamilycdn.com/2017/photo-10-1487899674425.jpg',
-        company_id: 'f0b7c8d2-9e34-4b11-8d22-6a9c1f3e5b90',
+        company_ids: ['f0b7c8d2-9e34-4b11-8d22-6a9c1f3e5b90'],
         employee_id: 'NV-MR-0231',
         full_name: 'Phạm Tiến Đạt',
         job_title: 'System Analyst',
@@ -176,20 +176,20 @@ const users = [
     {
         id: 'g0j3k8i4-7h9f-0g2j-hi87-1k3l57g8j640',
         avatar: 'https://afamilycdn.com/2017/photo-10-1487899674425.jpg',
-        company_id: '9d4e1a2f-cc87-4a6f-b9e3-18a7f2d0c611',
+        company_ids: ['9d4e1a2f-cc87-4a6f-b9e3-18a7f2d0c611'],
         employee_id: 'NV-VX-0001',
         full_name: 'Vũ Anh Tuấn',
         job_title: 'Head of Finance',
         password_hash: 'admin',
         role: 'admin',
-        username: 'admin.vertex',
+        username: 'tuan.vu',
         created_at: new Date('2024-03-01T00:00:00Z'),
         last_login_at: new Date('2026-01-14T11:15:00Z'),
     },
     {
         id: 'h1k4l9j5-8i0g-1h3k-ij98-2l4m68h9k751',
         avatar: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQVA-j1M0vIfBapbGAZZCA8eG1j_7e8VONEJg&s',
-        company_id: '9d4e1a2f-cc87-4a6f-b9e3-18a7f2d0c611',
+        company_ids: ['9d4e1a2f-cc87-4a6f-b9e3-18a7f2d0c611'],
         employee_id: 'NV-VX-0147',
         full_name: 'Lê Ngọc Mai',
         job_title: 'Financial Analyst',
@@ -269,9 +269,9 @@ async function main() {
     console.log('Starting data import...\n');
 
     try {
-        await importCompanies();
+        // await importCompanies();
         // await importDisplays();
-        // await importUsers();
+        await importUsers();
 
         console.log('\n✅ All data imported successfully!');
     } catch (error) {

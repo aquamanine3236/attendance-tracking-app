@@ -70,6 +70,23 @@ export const companies = {
         const doc = await companiesRef.doc(id).get();
         return doc.exists ? doc.data().name : 'Unknown Company';
     },
+
+    async findByIds(ids) {
+        if (!ids || ids.length === 0) return [];
+        // Firestore 'in' queries have max 30 elements, so we chunk if needed
+        const chunks = [];
+        for (let i = 0; i < ids.length; i += 30) {
+            chunks.push(ids.slice(i, i + 30));
+        }
+        const results = [];
+        for (const chunk of chunks) {
+            const snapshot = await companiesRef
+                .where(admin.firestore.FieldPath.documentId(), 'in', chunk)
+                .get();
+            results.push(...snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+        }
+        return results;
+    },
 };
 
 // =============================================================================
